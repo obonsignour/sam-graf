@@ -1,13 +1,14 @@
 <script lang="ts">
 	import Ogma, { type RawGraph } from '@linkurious/ogma'
 	import { count } from '$lib/state'
-	import type { AnymatchFn } from 'vite'
 
-	export let graph: RawGraph
-	// action
+	export let rawGraph: RawGraph
+
 	function setup(node: HTMLDivElement, graph: RawGraph) {
+		const nodeId = node.getAttribute('id')
+		if (nodeId === null) return // check to prevent TypeScript throwing an error on container: node.getAttribute('id')
 		const ogma = new Ogma({
-			container: node.getAttribute('id'),
+			container: nodeId,
 			graph: graph
 		})
 		// add styles
@@ -37,13 +38,28 @@
 	}
 </script>
 
-<div id="container" use:setup={graph}></div>
+<div class="ogma-graph">
+	{#await rawGraph}
+		<div>waiting for graph</div>
+	{:then value}
+		<div id="container" use:setup={rawGraph}></div>
+	{:catch error}
+		<div>error: {error.message}</div>
+	{/await}
+</div>
 
 <style>
+	.ogma-graph {
+		display: flex;
+		width: 90vw;
+		height: 90vh;
+		margin: 0;
+		border: 1px solid #043917;
+	}
 	#container {
-		width: 90%;
-		height: 90%;
-		margin: auto;
-		border: 1px solid #ccc;
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		border: 1px solid #d00808;
 	}
 </style>
