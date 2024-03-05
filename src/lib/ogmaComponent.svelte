@@ -1,13 +1,15 @@
 <script lang="ts">
 	import Ogma, { type RawGraph } from '@linkurious/ogma'
-	import { count } from '$lib/state'
-
+	import { createEventDispatcher } from 'svelte'
 	export let rawGraph: RawGraph
+	export let hoveredIds: [string]
+	let ogma: Ogma
+	// const dispatch = createEventDispatcher<{ nodeHovered: string | number }>()
 
-	function setup(node: HTMLDivElement, graph: RawGraph) {
+	const setup = (node: HTMLDivElement, graph: RawGraph) => {
 		const nodeId = node.getAttribute('id')
 		if (nodeId === null) return // check to prevent TypeScript throwing an error on container: node.getAttribute('id')
-		const ogma = new Ogma({
+		ogma = new Ogma({
 			container: nodeId,
 			graph: graph
 		})
@@ -15,24 +17,51 @@
 		ogma.styles.addNodeRule({
 			text: {
 				content: (node) => node.getData('Name'),
-				position: 'center',
-				color: 'white'
-			}
+				position: 'bottom',
+				color: 'black'
+			},
+			color: 'white',
+			innerStroke: 'black'
 		})
 
-		ogma.layouts.force({ locate: true })
+		ogma.events
+			.on('mouseover', (evt) => {
+				if (evt.target) {
+					const { target, x, y } = evt
+					hoveredIds[0] = target.getId().toString()
+					// dispatch('nodeHovered', { id: target.getId() })
+				}
+			})
+			.on('mouseout', (evt) => {
+				if (evt.target) {
+					const { target, x, y } = evt
+				}
+			})
+
+		ogma.layouts.forceLink({ locate: true })
 		return {
-			update(count: number) {
-				return ogma
-					.addGraph({
-						nodes: [{ id: count }],
-						edges: [{ source: 0, target: count }]
-					})
-					.then(() => ogma.layouts.force({ locate: true }))
-			},
+			// update(count: number) {
+			// 	return ogma
+			// 		.addGraph({
+			// 			nodes: [{ id: count }],
+			// 			edges: [{ source: 0, target: count }]
+			// 		})
+			// 		.then(() => ogma.layouts.force({ locate: true }))
+			// },
 			destroy() {
 				// kill ogma instance when the container is removed from DOM
 				return ogma.destroy()
+			}
+		}
+	}
+
+	$: {
+		console.log('HoveredId in component Ogma: ', hoveredIds[0])
+		if (ogma != undefined) {
+			ogma.getNodes().setSelected(false)
+			const nodes = ogma.getNodes().filter((node) => hoveredIds.includes(node.getId().toString()))
+			if (nodes.size > 0) {
+				nodes.setSelected(true)
 			}
 		}
 	}
@@ -51,8 +80,8 @@
 <style>
 	.ogma-graph {
 		display: flex;
-		width: 90vw;
-		height: 90vh;
+		width: auto;
+		height: auto;
 		margin: 0;
 		border: 1px solid #043917;
 	}

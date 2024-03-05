@@ -1,9 +1,9 @@
 <script lang="ts">
-	import OgmaComponent from '$lib/ogmaComponent.svelte'
+	import Viewer from '$lib/viewer.svelte'
 
 	import type { PageData } from './$types'
 
 	export let data: PageData
 </script>
 
-<OgmaComponent rawGraph={data.graph} />
+<Viewer rawGraph={data.graph} />
