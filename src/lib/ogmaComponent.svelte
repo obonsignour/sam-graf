@@ -1,8 +1,9 @@
 <script lang="ts">
 	import Ogma, { type RawGraph } from '@linkurious/ogma'
 	import { createEventDispatcher } from 'svelte'
+
 	export let rawGraph: RawGraph
-	export let hoveredIds: [string]
+	export let hoveredIds: string[]
 	let ogma: Ogma
 	// const dispatch = createEventDispatcher<{ nodeHovered: string | number }>()
 
@@ -28,6 +29,7 @@
 			.on('mouseover', (evt) => {
 				if (evt.target) {
 					const { target, x, y } = evt
+					if (hoveredIds) hoveredIds = []
 					hoveredIds[0] = target.getId().toString()
 					// dispatch('nodeHovered', { id: target.getId() })
 				}
@@ -35,6 +37,12 @@
 			.on('mouseout', (evt) => {
 				if (evt.target) {
 					const { target, x, y } = evt
+				}
+			})
+			.on('click', (evt) => {
+				if (!evt.target) {
+					const { target, x, y } = evt
+					if (hoveredIds) hoveredIds = []
 				}
 			})
 
@@ -56,12 +64,17 @@
 	}
 
 	$: {
-		console.log('HoveredId in component Ogma: ', hoveredIds[0])
+		// console.log(
+		// 	'In Ogma component - ',
+		// 	hoveredIds === undefined ? 'No hoveredIds yet' : ('HoveredIds in reactive statement of Component:', hoveredIds)
+		// )
 		if (ogma != undefined) {
 			ogma.getNodes().setSelected(false)
-			const nodes = ogma.getNodes().filter((node) => hoveredIds.includes(node.getId().toString()))
-			if (nodes.size > 0) {
-				nodes.setSelected(true)
+			if (hoveredIds != undefined) {
+				const nodes = ogma.getNodes().filter((node) => hoveredIds.includes(node.getId().toString()))
+				if (nodes.size > 0) {
+					nodes.setSelected(true)
+				}
 			}
 		}
 	}
@@ -71,7 +84,7 @@
 	{#await rawGraph}
 		<div>waiting for graph</div>
 	{:then value}
-		<div id="container" use:setup={rawGraph}></div>
+		<div id="container" class="container" use:setup={rawGraph}></div>
 	{:catch error}
 		<div>error: {error.message}</div>
 	{/await}
@@ -80,15 +93,17 @@
 <style>
 	.ogma-graph {
 		display: flex;
-		width: auto;
-		height: auto;
-		margin: 0;
-		border: 1px solid #043917;
-	}
-	#container {
+		justify-content: center;
 		width: 100%;
-		height: 100%;
+		height: var(--viewer-height);
 		margin: 0;
-		border: 1px solid #d00808;
+		border: 1px solid #b30505;
+		overflow: auto;
+	}
+	.container {
+		width: 100%;
+		height: var(--viewer-height);
+		margin: 0;
+		padding: 0;
 	}
 </style>

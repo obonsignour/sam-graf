@@ -5,18 +5,18 @@
 	import type { LayoutData } from './$types'
 
 	export let data: LayoutData
-	$: {
-		console.log(typeof $appName)
-		console.log($appName === 'undefined')
-	}
+	// $: {
+	// 	console.log(typeof $appName)
+	// 	console.log($appName === 'undefined')
+	// }
 </script>
 
-<div class="grid-container">
-	<nav>
+<div class="page">
+	<header>
 		<div>Sam Graf Viewer</div>
 		<div class="custom-select" style="width:200px;">
 			<select bind:value={$appName} name="apps" id="app-selector">
-				{console.log('AppName from store:', $appName)}
+				<!-- {console.log('AppName from store:', $appName)} -->
 				<option value="default" selected={$appName == 'undefined'}>Select an app</option>
 				{#await data.apps}
 					<span>Waiting for the list to be downloaded</span>
@@ -27,13 +27,15 @@
 				{/await}
 			</select>
 		</div>
-	</nav>
-	<div class="options">
+	</header>
+	<div class="wrapper">
 		<OptionsPanel />
-	</div>
-	<div class="content">
 		<slot />
 	</div>
+
+	<footer>
+		<div>Sam Graf Viewer footer</div>
+	</footer>
 </div>
 
 <style>
@@ -44,44 +46,49 @@
 		min-height: 100vh;
 		--background-blue: rgb(25, 118, 210);
 		--background-pale: rgb(227, 192, 192);
-		--selected: red;
+		--hovered: red;
+		--footer-header-height: 3rem;
 	}
 	:global(html) {
-		font-family: 'Work Sans', 'Roboto', sans-serif;
-		height: 100%;
+		font-family: 'Roboto', sans-serif;
+		height: 100vh;
 	}
 
-	.grid-container {
-		display: grid;
-		grid-template-areas:
-			'header header header header header header'
-			'options main main main main main'
-			'options footer footer footer footer footer';
-		grid-template-rows: 1fr 3fr 1fr;
-		grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
-		gap: 5px;
-		background-color: #2196f3;
-		max-height: 100vh;
+	*,
+	*:before,
+	*:after {
+		box-sizing: inherit;
 	}
 
-	.options {
-		grid-area: options;
-	}
-	.content {
-		grid-area: main;
-	}
-
-	nav {
-		grid-area: header;
+	.page {
 		display: flex;
-		justify-content: left;
-		background-color: #000000;
-		padding: 0.25rem 1rem;
+		flex-direction: column;
+		height: 100vh;
+	}
+	header,
+	footer {
+		width: auto;
+		height: var(--footer-header-height);
+		background-color: black;
 		color: white;
-		height: 2rem;
-		font-size: 1.25rem;
+		display: flex;
+		justify-content: space-between; /* Add this line */
+		align-items: center;
+		padding: 0rem 0.5rem 0 0;
 	}
 
+	header {
+		justify-content: flex-start;
+	}
+	.wrapper {
+		display: flex;
+		justify-content: flex-start;
+		align-items: flex-start;
+		flex-grow: 1;
+		height: 100%;
+		overflow: hidden;
+		border: 5px solid var(--background-blue);
+	}
 	.custom-select {
 		margin: 0 1rem;
 	}

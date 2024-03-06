@@ -11,10 +11,11 @@
 <style>
 	.options {
 		display: flex;
-		height: 100%;
+		height: 50%;
+		min-width: 10rem;
 		flex-direction: column;
 		justify-content: flex-start;
-
+		border: 1px solid #b30505;
 		background-color: #555555;
 		padding: 1rem;
 		color: white;
