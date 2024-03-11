@@ -32,6 +32,7 @@
 	"type": "module",
 	"dependencies": {
 		"@fortawesome/fontawesome-free": "^6.5.1",
-		"@linkurious/ogma": "https://get.linkurio.us/api/get/npm/ogma/5.0.2/?secret=lk-dls-53bda9ab3bdfb1ec493298136d59d983e002ea25"
+		"@linkurious/ogma": "https://get.linkurio.us/api/get/npm/ogma/5.0.2/?secret=lk-dls-53bda9ab3bdfb1ec493298136d59d983e002ea25",
+		"create-vite": "^5.2.1"
 	}
 }
