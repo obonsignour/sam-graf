@@ -9,23 +9,23 @@
 	// 	console.log(typeof $appName)
 	// 	console.log($appName === 'undefined')
 	// }
+	let appSelected = $appName
 </script>
 
 <div class="page">
 	<header>
 		<div>Sam Graf Viewer</div>
 		<div class="custom-select" style="width:200px;">
-			<select bind:value={$appName} name="apps" id="app-selector">
-				<!-- {console.log('AppName from store:', $appName)} -->
-				<option value="default" selected={$appName == 'undefined'}>Select an app</option>
-				{#await data.apps}
-					<span>Waiting for the list to be downloaded</span>
-				{:then apps}
+			{#await data.apps}
+				<span>Waiting for the list to be downloaded</span>
+			{:then apps}
+				<select bind:value={appSelected} name="apps" id="app-selector" on:change={() => ($appName = appSelected)}>
+					<option value="default" selected>Select an app</option>
 					{#each apps as app}
 						<option value={app.appName} selected={app.appName == $appName}>{app.appName}</option>
 					{/each}
-				{/await}
-			</select>
+				</select>
+			{/await}
 		</div>
 	</header>
 	<div class="wrapper">

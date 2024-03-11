@@ -5,4 +5,8 @@
 	export let data: PageData
 </script>
 
-<Viewer rawGraph={data.graph} />
+{#if data.graph}
+	<Viewer rawGraph={data.graph} />
+{:else}
+	<div>Select an application</div>
+{/if}

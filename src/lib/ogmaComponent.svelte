@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Ogma, { type RawGraph } from '@linkurious/ogma'
+	import Ogma, { Transformation, type RawGraph } from '@linkurious/ogma'
 	import { createEventDispatcher } from 'svelte'
 
 	export let rawGraph: RawGraph
@@ -9,10 +9,10 @@
 
 	const setup = (node: HTMLDivElement, graph: RawGraph) => {
 		const nodeId = node.getAttribute('id')
+		let communityGrouping: Transformation<any, any>
 		if (nodeId === null) return // check to prevent TypeScript throwing an error on container: node.getAttribute('id')
 		ogma = new Ogma({
-			container: nodeId,
-			graph: graph
+			container: nodeId
 		})
 		// add styles
 		ogma.styles.addNodeRule({
@@ -22,7 +22,7 @@
 				color: 'black'
 			},
 			color: 'white',
-			innerStroke: 'black'
+			innerStroke: { color: 'black', minVisibleSize: 3 }
 		})
 
 		ogma.events
@@ -45,8 +45,54 @@
 					if (hoveredIds) hoveredIds = []
 				}
 			})
+			.on('doubleclick', (evt) => {
+				const target = evt.target
+				if (!target) return
+				if (!target.isNode) return
+				const node = target
+				console.log('Double clicked on node:', node.getId())
+				if (communityGrouping) {
+					communityGrouping.toggle(300).then(() => ogma.layouts.force({}))
+				}
+			})
 
-		ogma.layouts.forceLink({ locate: true })
+		ogma
+			.setGraph(graph)
+			.then(() => {
+				communityGrouping = ogma.transformations.addNodeGrouping({
+					groupIdFunction: (node) => node.getData('InternalType'),
+					nodeGenerator: (nodes, groupId) => {
+						return {
+							id: 'special group ' + groupId,
+							data: {
+								groupId: groupId,
+								subNodes: nodes
+							},
+							attributes: {
+								radius: Math.min(
+									Math.max(
+										nodes.reduce((acc, node) => {
+											return acc + 1 //node.getAttribute('radius')
+										}, 0),
+										15
+									),
+									50
+								),
+								text: groupId,
+								badges: {
+									bottomRight: {
+										text: nodes.size
+									}
+								}
+							}
+						}
+					},
+					duration: 300
+				})
+				return communityGrouping.whenApplied()
+			})
+			.then(() => ogma.layouts.force({ locate: true }))
+
 		return {
 			// update(count: number) {
 			// 	return ogma

@@ -174,7 +174,7 @@
 
 <div class="right-panel">
 	<h2>Nodes</h2>
-	{#if rawGraph && rawGraph.nodes.length > 0}
+	{#if rawGraph && rawGraph.nodes && rawGraph.nodes.length > 0}
 		<div class="list-wrapper">
 			<div id="node-list" class="node-list">
 				#{#await sortedRows(rawGraph)}
