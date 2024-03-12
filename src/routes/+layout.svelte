@@ -5,20 +5,21 @@
 	import { appName, pageTitle } from '$lib/generalStore'
 	// import { graphName } from '$lib/generalStore'
 	import type { LayoutData } from './$types'
+	import { page } from '$app/stores'
+	import { onMount } from 'svelte'
+
+	onMount(() => {
+		console.log('the component has mounted. params:', $page.params, ', slug:', $page.params.appName)
+		$appName = $page.params.appName
+	})
 
 	export let data: LayoutData
-	// $: {
-	// 	console.log(typeof $appName)
-	// 	console.log($appName === 'undefined')
-	// }
-	let appSelected = $appName
 </script>
 
 <div class="page">
 	<header>
 		<div>Sami Graf Viewer</div>
 
-		<!-- App selection -->
 		{#await data.apps}
 			<span>Waiting for the list to be downloaded</span>
 		{:then apps}
@@ -29,29 +30,6 @@
 			{/if}
 		{/await}
 		<div class="page-title">{$pageTitle}</div>
-
-		<!-- DataGraph or Transaction selection -->
-		<!-- <div class="custom-select" style="width:200px;">
-            <select bind:value={graphTypeSelected} name="graphTypeSelected" id="graph-type-selector">
-                <option value="default" selected>Select Graph Type</option>
-                <option value="DataGraphs">DataGraphs</option>
-                <option value="Transactions">Transactions</option>
-            </select>
-        </div> -->
-
-		<!-- Graph selection -->
-		<!-- <div class="custom-select" style="width:200px;">
-			{#await data.apps}
-				<span>Waiting for the list to be downloaded</span>
-			{:then apps}
-				<select bind:value={graphSelected} name="graphSelected" id="graph-selector" on:change={() => ($graphName = graphSelected)}>
-					<option value="default" selected>Select a Graph</option>
-					{#each apps as app}
-						<option value={app.graphName} selected={app.graphName == $graphName}>{app.graphName}</option>
-					{/each}
-				</select>
-			{/await}
-		</div> -->
 	</header>
 	<div class="wrapper">
 		<OptionsPanel />
