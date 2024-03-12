@@ -26,6 +26,8 @@
 		margin: 1rem;
 		display: grid;
 		grid-template-columns: 1fr 1fr;
+		height: 450px;
+	  	overflow-y: auto;
 	}
 
 	.header {

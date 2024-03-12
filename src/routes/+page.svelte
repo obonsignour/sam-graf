@@ -19,8 +19,8 @@
 	{/await}
 
 	{#if $appName !== 'undefined'}
-		<p class="action"><a href="/Applications/{$appName}/DataGraphs">Goto {$appName} DataGraphs</a></p>
-		<p class="action"><a href="/Applications/{$appName}/Transactions">Goto {$appName} Transactions</a></p>
+		<p class="action"><a href="/Applications/{$appName}/DataGraphs">Go to {$appName} DataGraphs</a></p>
+		<p class="action"><a href="/Applications/{$appName}/Transactions">Go to {$appName} Transactions</a></p>
 	{/if}
 </div>
 
