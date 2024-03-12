@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { appName, pageTitle } from '$lib/generalStore'
 	import Viewer from '$lib/viewer.svelte'
 	import type { PageData } from './$types'
 
 	export let data: PageData
+
+	$: $pageTitle = `Transaction ${data.name} for ${$appName}`
 </script>
 
 {#if data.graph}

@@ -1,10 +1,18 @@
 import type { LayoutServerLoad } from './$types'
 import { env } from '$env/dynamic/private'
+import type { selectElement } from '$lib/selector.svelte'
 
 export const load = (async () => {
 
   const res = await fetch(`http://${env.SAM_GRAF_SERVER}/Applications`)
-  const apps: [{ appName: string }] = await res.json()
+  if (!res.ok) {
+    return { status: res.status }
+  }
+  const results: [{ appName: string }] = await res.json()
+  if (!results) {
+    return { status: 404 }
+  }
+  const apps: selectElement[] = results.map((app) => { const element: selectElement = { value: app.appName, label: app.appName }; return element })
 
   return { apps: apps }
 }) satisfies LayoutServerLoad

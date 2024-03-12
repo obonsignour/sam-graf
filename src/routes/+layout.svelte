@@ -1,8 +1,9 @@
 <script lang="ts">
 	import '@fortawesome/fontawesome-free/css/all.min.css'
 	import OptionsPanel from '$lib/optionsPanel.svelte'
-	import { appName } from '$lib/generalStore'
-	import { graphName } from '$lib/generalStore'
+	import Selector from '$lib/selector.svelte'
+	import { appName, pageTitle } from '$lib/generalStore'
+	// import { graphName } from '$lib/generalStore'
 	import type { LayoutData } from './$types'
 
 	export let data: LayoutData
@@ -18,30 +19,28 @@
 		<div>Sami Graf Viewer</div>
 
 		<!-- App selection -->
-		<div class="custom-select" style="width:200px;">
-			{#await data.apps}
-				<span>Waiting for the list to be downloaded</span>
-			{:then apps}
-				<select bind:value={appSelected} name="apps" id="app-selector" on:change={() => ($appName = appSelected)}>
-					<option value="default" selected>Select an app</option>
-					{#each apps as app}
-						<option value={app.appName} selected={app.appName == $appName}>{app.appName}</option>
-					{/each}
-				</select>
-			{/await}
-		</div>
+		{#await data.apps}
+			<span>Waiting for the list to be downloaded</span>
+		{:then apps}
+			{#if apps}
+				<Selector elements={apps} bind:selected={$appName} />
+			{:else}
+				<p>No apps found</p>
+			{/if}
+		{/await}
+		<div class="page-title">{$pageTitle}</div>
 
-        <!-- DataGraph or Transaction selection -->
-        <div class="custom-select" style="width:200px;">
+		<!-- DataGraph or Transaction selection -->
+		<!-- <div class="custom-select" style="width:200px;">
             <select bind:value={graphTypeSelected} name="graphTypeSelected" id="graph-type-selector">
                 <option value="default" selected>Select Graph Type</option>
                 <option value="DataGraphs">DataGraphs</option>
                 <option value="Transactions">Transactions</option>
             </select>
-        </div>
+        </div> -->
 
 		<!-- Graph selection -->
-		<div class="custom-select" style="width:200px;">
+		<!-- <div class="custom-select" style="width:200px;">
 			{#await data.apps}
 				<span>Waiting for the list to be downloaded</span>
 			{:then apps}
@@ -52,8 +51,7 @@
 					{/each}
 				</select>
 			{/await}
-		</div>
-
+		</div> -->
 	</header>
 	<div class="wrapper">
 		<OptionsPanel />
