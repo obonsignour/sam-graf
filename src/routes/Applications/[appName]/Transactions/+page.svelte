@@ -26,8 +26,10 @@
 		margin: 1rem;
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		height: 450px;
-	  	overflow-y: auto;
+		height: 90%;
+		min-width: 40%;
+		max-width: 80%;
+		overflow-y: auto;
 	}
 
 	.header {

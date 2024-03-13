@@ -26,7 +26,7 @@
 	const convertNodetoRow = (node: RawNode): NodeRow => {
 		return {
 			id: node.id.toString(),
-			rowData: { name: node.data.Name, type: node.data.Type, fullName: node.data.FullName }
+			rowData: { name: node.data.properties.Name, type: node.data.properties.Type, fullName: node.data.properties.FullName }
 		}
 	}
 

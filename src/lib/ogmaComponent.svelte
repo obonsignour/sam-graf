@@ -10,6 +10,8 @@
 	const setup = (node: HTMLDivElement, graph: RawGraph) => {
 		const nodeId = node.getAttribute('id')
 		let communityGrouping: Transformation<any, any>
+		let communityFlagging: Transformation<any, any>
+
 		if (nodeId === null) return // check to prevent TypeScript throwing an error on container: node.getAttribute('id')
 		ogma = new Ogma({
 			container: nodeId
@@ -17,7 +19,7 @@
 		// add styles
 		ogma.styles.addNodeRule({
 			text: {
-				content: (node) => node.getData('Name'),
+				content: (node) => node.getData('properties.Name'),
 				position: 'bottom',
 				color: 'black'
 			},
@@ -59,9 +61,17 @@
 		ogma
 			.setGraph(graph)
 			.then(() => {
+				communityFlagging = ogma.transformations.addNeighborMerging({
+					selector: (node) => node.getData('labels').includes('DataGraph') || node.getData('labels').includes('Transaction'),
+					dataFunction: (node) => ({ Louvain: node.getData('properties') }),
+					duration: 300
+				})
+				return communityFlagging.whenApplied()
+			})
+			.then(() => {
 				communityGrouping = ogma.transformations.addNodeGrouping({
-					groupIdFunction: (node) => node.getData('InternalType'),
-					//groupIdFunction: (node) => node.getData('community_level_0_Directed_Louvain_DataGraph_PRODUCTS'),
+					groupIdFunction: (node) => node.getData('properties.InternalType'),
+					//groupIdFunction: (node) => node.getData('properties.community_level_0_Directed_Louvain_DataGraph_PRODUCTS'),
 					nodeGenerator: (nodes, groupId) => {
 						return {
 							id: 'special group ' + groupId,
