@@ -70,7 +70,7 @@
 			})
 			.then(() => {
 				communityGrouping = ogma.transformations.addNodeGrouping({
-					groupIdFunction: (node) => node.getData('properties.InternalType'),
+					groupIdFunction: (node) => node.getData('properties.Louvain')[0],
 					//groupIdFunction: (node) => node.getData('properties.community_level_0_Directed_Louvain_DataGraph_PRODUCTS'),
 					nodeGenerator: (nodes, groupId) => {
 						return {
