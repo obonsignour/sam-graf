@@ -3,7 +3,6 @@
 	import OptionsPanel from '$lib/optionsPanel.svelte'
 	import Selector from '$lib/selector.svelte'
 	import { appName, pageTitle } from '$lib/generalStore'
-	// import { graphName } from '$lib/generalStore'
 	import type { LayoutData } from './$types'
 	import { page } from '$app/stores'
 	import { onMount } from 'svelte'
@@ -16,7 +15,7 @@
 	export let data: LayoutData
 </script>
 
-<div class="page">
+<div class="page" data-sveltekit-preload-data="tap">
 	<header>
 		<div>Sami Graf Viewer</div>
 
@@ -24,7 +23,9 @@
 			<span>Waiting for the list to be downloaded</span>
 		{:then apps}
 			{#if apps}
-				<Selector elements={apps} bind:selected={$appName} />
+				<div class="custom-select">
+					<Selector elements={apps} bind:selected={$appName} />
+				</div>
 			{:else}
 				<p>No apps found</p>
 			{/if}
@@ -51,6 +52,7 @@
 		--background-pale: rgb(227, 192, 192);
 		--hovered: red;
 		--footer-header-height: 3rem;
+		--background-options-color: #f0f0f0;
 	}
 	:global(html) {
 		font-family: 'Roboto', sans-serif;

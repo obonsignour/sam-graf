@@ -159,7 +159,7 @@
 		}
 	}
 
-	$: console.log('RightPanel got: ', hoveredIds)
+	// $: console.log('RightPanel got: ', hoveredIds)
 	$: {
 		if (hoveredIds && hoveredIds.length > 0) {
 			hoveredIds.forEach((id) => {
@@ -167,7 +167,7 @@
 				if (typeElement) openType(typeElement)
 				// node.scrollIntoView({ behavior: 'smooth', block: 'center' })
 			})
-			console.log('HoveredIds:', hoveredIds)
+			// console.log('HoveredIds:', hoveredIds)
 		}
 	}
 </script>

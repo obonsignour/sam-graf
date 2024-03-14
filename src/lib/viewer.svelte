@@ -9,7 +9,7 @@
 	// const handleHoveredGraph = (e) => {
 	// 	// console.log('Hovered graph:', e.detail.id)
 	// }
-	$: console.log('Viewer got: ', hoveredIds)
+	// $: console.log('Viewer got: ', hoveredIds)
 </script>
 
 <div class="viewer">
