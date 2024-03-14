@@ -89,7 +89,7 @@
 	}
 
 	const over = (e: MouseEvent) => {
-		console.log('In over, hoveredIds: ', hoveredIds === undefined ? 'undefined' : hoveredIds)
+		// console.log('In over, hoveredIds: ', hoveredIds === undefined ? 'undefined' : hoveredIds)
 		if (hoveredIds.length > 0) hoveredIds = []
 
 		const target = e.target as HTMLElement

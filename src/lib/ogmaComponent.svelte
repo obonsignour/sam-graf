@@ -174,10 +174,11 @@
 	}
 
 	const setIdGroup = () => {
-		ogma.getNodes('raw').setData('groupId', (node): string => {
-			const communities: number[] = node.getData('properties.' + algo) ? node.getData('properties.' + algo) : [0]
+		ogma.getNodes('raw').setData('groupId', (node): string | undefined => {
+			const communities: number[] = node.getData('properties.' + algo) //? node.getData('properties.' + algo) : 'undefined'
 			// console.log('Communities: ', communities, ' new value ', communities.slice(0, level).join('.'))
-			return communities.slice(0, Math.min(level, communities.length)).join('.')
+			if (communities) return communities.slice(0, Math.min(level, communities.length)).join('.')
+			return undefined
 		})
 	}
 
