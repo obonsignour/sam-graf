@@ -9,6 +9,6 @@ export const load = (async ({ params }) => {
   }
   const res = await fetch(`http://${env.SAM_GRAF_SERVER}/Applications/${appName}/Transactions/${transactionName}`)
   const graph: RawGraph = await res.json()
-  console.log('graph', graph.edges)
+
   return { graph: graph, name: transactionName }
 }) satisfies PageServerLoad

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { RawGraph } from '@linkurious/ogma'
-	import OgmaComponent from './ogmaComponent.svelte'
+	import OgmaComponent from './ogmaComponent/+page.svelte'
 	import RightPanel from './rightPanel.svelte'
 
 	export let rawGraph: RawGraph
