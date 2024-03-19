@@ -14,7 +14,7 @@
 
 <div class="viewer">
 	<OgmaComponent {rawGraph} bind:hoveredIds />
-	<RightPanel {rawGraph} bind:hoveredIds />
+	<!---<RightPanel {rawGraph} bind:hoveredIds />-->
 </div>
 
 <style>

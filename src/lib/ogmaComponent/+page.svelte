@@ -13,7 +13,7 @@
 	let ogma: Ogma
 	let isContentVisible = false //drive the display or not of the content of the grouped nodes
 	let isGroupingEnabled = true
-	let algo = 'Louvain'
+	let algo = 'DirectedLouvain'
 	let level = 1
 	let currentZoomLevel: number = 100
 
@@ -26,17 +26,44 @@
 		ogma = new Ogma({
 			container: nodeId
 		})
-		// add styles
+		// Nodes style
 		ogma.styles.addNodeRule((node) => !node.isVirtual(), {
 			text: {
 				content: (node) => node.getData('properties.Name'),
-				position: 'bottom',
-				color: 'black'
+				position: 'center',
+				color: 'black',
+    			maxLineLength: 140, // truncate
+    			size: 12,
+    			//backgroundColor: '#444',
+    			minVisibleSize: 5,
 			},
-			color: 'white',
-			innerStroke: { color: 'gray', width: 1 },
+			  // Set color based on node type
+			color: node => {
+				// Check if the node is a start node
+				if (isStartNode(node)) {
+				return 'green'; // Set color to green for start nodes
+				}
+				// Check if the node is an end node
+				else if (isEndNode(node)) {
+				return 'red'; // Set color to red for end nodes
+				}
+				// Default color for other nodes
+				return 'grey';
+			},
+			//innerStroke: { color: 'gray', width: 1 },
 			badges: { bottomRight: { minVisibleSize: 20 } }
 		})
+
+		// Function to check if a node is a start node
+		function isStartNode(node) {
+		return node.getData('properties.DgStartPoint') === 'start';
+		}
+
+		// Function to check if a node is an end node
+		function isEndNode(node) {
+		return node.getData('properties.DgEndPoint') === 'end';
+		}
+
 		// ogma.styles.addNodeRule((node) => node.isVirtual(), {
 		// 	text: {
 		// 		content: (node) => 'Group ' + node.getData('groupId'),
@@ -46,6 +73,19 @@
 		// 	color: 'white',
 		// 	innerStroke: { color: 'gray', minVisibleSize: 3 }
 		// })
+
+		// Edges style
+		ogma.styles.addEdgeRule({
+			text: {
+				content: edge => edge.getData('neo4jType')
+			},
+			shape: {
+				body: () => 'line',
+				style: () => 'plain',
+				head: () => null,
+				tail: () => 'arrow'
+			}
+		});
 
 		ogma.events
 			.on('mouseover', (evt) => {
@@ -117,7 +157,7 @@
 						level: level
 					},
 					attributes: {
-						color: 'lightgray',
+						color: 'white',
 						radius: isContentVisible
 							? undefined
 							: Math.min(
@@ -129,11 +169,20 @@
 									),
 									50
 								),
-						outerStroke: { color: 'red', width: 1, minVisibleSize: 3 },
-						text: groupId,
+						outerStroke: { color: 'blue', width: 1, minVisibleSize: 3 },
+						//text: groupId,
+						text: {
+							content: groupId,
+							position: 'center',
+							color: 'black',
+							maxLineLength: 140, // truncate
+							size: 12,
+							//backgroundColor: '#444',
+							minVisibleSize: 5,
+						},
 						badges: {
 							bottomRight: {
-								color: 'lightgray',
+								color: 'white',
 								text: {
 									color: 'gray',
 									content: nodes.size
@@ -158,8 +207,9 @@
 	}
 
 	const algos: selectElement[] = [
-		{ value: 'None', label: 'None' },
-		{ value: 'Louvain', label: 'Louvain' },
+		{ value: 'None', label: 'None (full graph view)' },
+		{ value: 'UndirectedLouvain', label: 'UndirectedLouvain' },
+		{ value: 'DirectedLouvain', label: 'DirectedLouvain' },
 		{ value: 'Leiden', label: 'Leiden' }
 	]
 
