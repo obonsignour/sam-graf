@@ -187,14 +187,18 @@
 							class="line-item"
 							on:focus
 							on:mouseover={over}
+							class:hovered={isHovered(hoveredIds, node.id)}
 							data-id={node.id}
 							title={node.rowData.fullName || ''}
-							class:hovered={isHovered(hoveredIds, node.id)}
 						>
 							{#if node.rowData.level === 'nodeType'}
-								<div id={node.id} data-id={node.id} data-is-level="true" class="node-type closed" on:click={toggleType}>{node.rowData.label}</div>
+								<div id={node.id} data-id={node.id} data-is-level="true" class="node-type closed" on:click={toggleType}>
+									{node.rowData.label}
+								</div>
 							{:else}
-								<div id={node.id} data-id={node.id} data-type={node.rowData.type} class="node-name hidden">{node.rowData.label}</div>
+								<div id={node.id} data-id={node.id} data-type={node.rowData.type} class="node-name hidden">
+									{node.rowData.label}
+								</div>
 							{/if}
 						</div>
 					{/each}
@@ -209,11 +213,13 @@
 		--right-panel-width: 20rem;
 	}
 	.hovered {
-		padding: 0.5rem 0;
 		border: 2px solid var(--hovered);
 		/* background-color: var(--hovered); */
 	}
 
+	.line-item.hovered:has(> .hidden) {
+		border: 0px;
+	}
 	.right-panel {
 		display: flex;
 		flex-direction: column;
@@ -233,6 +239,7 @@
 	.list-wrapper {
 		display: flex;
 		flex-direction: column;
+		border-collapse: collapse;
 		/* justify-content: flex-start;
 		align-items: flex-start; */
 		overflow-y: auto;
@@ -261,7 +268,6 @@
 		width: 100%;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		box-sizing: border-box;
 	}
 
 	.node-type {
@@ -269,6 +275,7 @@
 		font-weight: bold;
 		margin: 0.25rem 0;
 		text-overflow: ellipsis;
+		padding: 0.5rem 0 0.25rem 0;
 		overflow: hidden;
 		white-space: nowrap;
 		width: calc(var(--right-panel-width) - 2rem);
@@ -289,6 +296,7 @@
 	.node-name {
 		margin: 0.125rem 0;
 		min-height: 1.25rem;
+
 		padding-left: 1rem;
 		text-overflow: ellipsis;
 		overflow: hidden;
