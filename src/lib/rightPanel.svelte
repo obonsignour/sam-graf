@@ -177,7 +177,7 @@
 	{#if rawGraph && rawGraph.nodes && rawGraph.nodes.length > 0}
 		<div class="list-wrapper">
 			<div id="node-list" class="node-list">
-				#{#await sortedRows(rawGraph)}
+				{#await sortedRows(rawGraph)}
 					<div>Sorting</div>
 				{:then sortedList}
 					{#each sortedList.nodes as node}
@@ -213,8 +213,9 @@
 		--right-panel-width: 20rem;
 	}
 	.hovered {
-		border: 2px solid var(--hovered);
+		/* border: 2px solid var(--hovered); */
 		/* background-color: var(--hovered); */
+		color: var(--hovered);
 	}
 
 	.line-item.hovered:has(> .hidden) {
@@ -261,6 +262,7 @@
 
 	.line-item {
 		display: flex;
+		/* min-height: 1.25rem; */
 		flex-direction: row;
 		align-items: flex-start;
 		justify-content: flex-start;
@@ -269,13 +271,16 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
+	/* .node-list:nth-child() {
+		color: aqua;
+	} */
 
 	.node-type {
 		min-height: 1.25rem;
-		font-weight: bold;
-		margin: 0.25rem 0;
+		/* margin: 0.25rem 0 0 0;
+		padding: 0.5rem 0 0.25rem 0; */
+		font-weight: 900;
 		text-overflow: ellipsis;
-		padding: 0.5rem 0 0.25rem 0;
 		overflow: hidden;
 		white-space: nowrap;
 		width: calc(var(--right-panel-width) - 2rem);
@@ -294,9 +299,8 @@
 		margin-right: 0.5rem; /* Add some space between the image and the text */
 	}
 	.node-name {
-		margin: 0.125rem 0;
+		/* margin: 0.125rem 0; */
 		min-height: 1.25rem;
-
 		padding-left: 1rem;
 		text-overflow: ellipsis;
 		overflow: hidden;

@@ -3,6 +3,8 @@
 	import OptionsPanel from '$lib/optionsPanel.svelte'
 	import Selector from '$lib/selector.svelte'
 	import { appName, pageTitle } from '$lib/generalStore'
+	import SearchDialog from '$lib/searchDialog/+page.svelte'
+	import Header from '$lib/header/+page.svelte'
 	import type { LayoutData } from './$types'
 	import { page } from '$app/stores'
 	import { onMount } from 'svelte'
@@ -11,30 +13,18 @@
 		console.log('the component has mounted. params:', $page.params, ', slug:', $page.params.appName)
 		$appName = $page.params.appName
 	})
-
+	let isSearchOpened: boolean = false
+	const openSearch = () => {
+		isSearchOpened = true
+	}
 	export let data: LayoutData
 </script>
 
 <div class="page" data-sveltekit-preload-data="tap">
-	<header>
-		<div>Sami Graf Viewer</div>
-
-		{#await data.apps}
-			<span>Waiting for the list to be downloaded</span>
-		{:then apps}
-			{#if apps}
-				<div class="custom-select">
-					<Selector elements={apps} bind:selected={$appName} />
-				</div>
-			{:else}
-				<p>No apps found</p>
-			{/if}
-		{/await}
-		<div class="page-title">{$pageTitle}</div>
-	</header>
+	<Header initData={data.apps != undefined ? { apps: data.apps } : { apps: [] }} />
 	<div class="wrapper">
 		<OptionsPanel />
-		<slot />
+		<slot {isSearchOpened} />
 	</div>
 
 	<footer>
@@ -70,7 +60,7 @@
 		flex-direction: column;
 		height: 100vh;
 	}
-	header,
+
 	footer {
 		width: auto;
 		height: var(--footer-header-height);
@@ -82,9 +72,6 @@
 		padding: 0rem 0.5rem 0 0;
 	}
 
-	header {
-		justify-content: flex-start;
-	}
 	.wrapper {
 		display: flex;
 		justify-content: flex-start;
@@ -93,8 +80,5 @@
 		height: 100%;
 		overflow: hidden;
 		border: 5px solid var(--background-blue);
-	}
-	.custom-select {
-		margin: 0 1rem;
 	}
 </style>
