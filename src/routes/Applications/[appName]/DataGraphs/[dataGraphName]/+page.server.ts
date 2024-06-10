@@ -3,7 +3,7 @@ import type { PageServerLoad } from './$types'
 import { env } from '$env/dynamic/private'
 
 export const load = (async ({ params }) => {
-  const { appName, dataGraphName } = params
+  const { appName, dataGraphName  } = params
   if (!appName) {
     return { status: 404 }
   }

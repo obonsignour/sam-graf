@@ -13,7 +13,7 @@
 	let ogma: Ogma
 	let isContentVisible = false //drive the display or not of the content of the grouped nodes
 	let isGroupingEnabled = true
-	let algo = 'DirectedLouvain'
+	let algo = 'Leiden'
 	let level = 1
 	let currentZoomLevel: number = 100
 
@@ -77,7 +77,8 @@
 		// Edges style
 		ogma.styles.addEdgeRule({
 			text: {
-				content: edge => edge.getData('neo4jType')
+				//content: edge => 'test ' + edge.getId()
+				content: edge => edge.getData('properties.id')
 			},
 			shape: {
 				body: () => 'line',
@@ -147,7 +148,6 @@
 	const defineGrouping = (): Transformation<any, any> => {
 		return ogma.transformations.addNodeGrouping({
 			groupIdFunction: (node) => node.getData('groupId'),
-			//groupIdFunction: (node) => node.getData('properties.community_level_0_Directed_Louvain_DataGraph_PRODUCTS'),
 			nodeGenerator: (nodes, groupId) => {
 				return {
 					id: 'special group ' + groupId,
@@ -192,6 +192,27 @@
 					}
 				}
 			},
+			separateEdgesByDirection: true,
+  			edgeGenerator: edgeList => {
+    			const combinedId = edgeList.getId().join('-');
+    			return { id: 'grouped-edge-' + combinedId, 
+					attributes: { 
+						shape: {
+							body: () => 'line',
+							style: () => 'plain',
+							head: () => null,
+							tail: () => 'arrow'
+						},
+						text: {
+							content: 'TEST',
+							position: 'center',
+							color: 'black',
+							size: 12,
+							minVisibleSize: 5,
+						} 
+					}
+				}
+  			},
 			onCreated: (metaNode, visible, subNodes, subEdges) => {
 				if (visible) {
 					return ogma.layouts.force({
@@ -261,7 +282,8 @@
 	const setIdGroupForNodes = (nodes: NodeList, forLevel: number = level) => nodes.setData('groupId', (node) => computeCommunityLevel(node, forLevel))
 	const computeCommunityLevel = (node: Node, forLevel: number = level) => {
 		const communities: number[] = node.getData('properties.' + algo)
-		if (communities) return communities.slice(0, Math.min(forLevel, communities.length)).join('.')
+		//if (communities) return communities.slice(0, Math.min(forLevel, communities.length)).join('.')
+		if (communities) return communities[forLevel-1]
 		return undefined
 	}
 
