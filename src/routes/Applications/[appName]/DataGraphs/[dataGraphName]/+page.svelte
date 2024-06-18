@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { appName, pageTitle, relationType } from '$lib/generalStore'
-	import Viewer from '$lib/viewer.svelte'
-	import type { PageData } from './$types'
-	import AnotherSelector from '$lib/anotherSelector/+page.svelte'
+	import { appName, pageTitle, relationType } from '$lib/generalStore';
+	import Viewer from '$lib/viewer.svelte';
+	import type { PageData } from './$types';
+	import AnotherSelector from '$lib/anotherSelector/+page.svelte';
 
-	export let data: PageData
+	export let data: PageData;
 
-	$: $pageTitle = `DataGraph ${data.name} for ${$appName}`
+	$: $pageTitle = `DataGraph ${data.name} for ${$appName}`;
 
 	let selected = new Set<string>();
 
@@ -18,6 +18,24 @@
 		}
 		$relationType = Array.from(selected).join(', ');
 	}
+
+	async function submitSelections(event: Event) {
+		event.preventDefault();
+		const form = event.target as HTMLFormElement;
+		const formData = new FormData();
+		formData.set('selectedItems', JSON.stringify(Array.from(selected)));
+
+		const response = await fetch(form.action, {
+			method: 'POST',
+			body: formData,
+		});
+
+		if (!response.ok) {
+			console.error('Failed to submit selections');
+		} else {
+			console.log('Selections submitted successfully');
+		}
+	}
 </script>
 
 {#if data.graph}
@@ -28,22 +46,25 @@
 
 <div class="content">
 	{#await data.relationsTypes}
-		<span>Waiting for the list to be downloaded</span>
+		<span>Waiting for the links to be downloaded</span>
 	{:then relationsTypes}
 		{#if relationsTypes}
-			<details class="custom-select">
-				<summary>Select link types</summary>
-				<ul>
-					{#each relationsTypes as element}
-						<li>
-							<label>
-								<input type="checkbox" value={element.value} on:change={() => toggleSelection(element.value)} checked={selected.has(element.value)} />
-								{element.label}
-							</label>
-						</li>
-					{/each}
-				</ul>
-			</details>
+			<form on:submit={submitSelections} action="#" method="post">
+				<details class="custom-select">
+					<summary>Select link types</summary>
+					<ul>
+						{#each relationsTypes as element}
+							<li>
+								<label>
+									<input type="checkbox" value={element.value} on:change={() => toggleSelection(element.value)} checked={selected.has(element.value)} />
+									{element.label}
+								</label>
+							</li>
+						{/each}
+					</ul>
+				</details>
+				<button type="submit">Submit</button>
+			</form>
 		{:else}
 			<p>No links found</p>
 		{/if}
@@ -98,4 +119,3 @@
 		margin-right: 0.5rem;
 	}
 </style>
-

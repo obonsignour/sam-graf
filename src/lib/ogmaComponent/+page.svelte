@@ -56,12 +56,12 @@
 
 		// Function to check if a node is a start node
 		function isStartNode(node) {
-		return node.getData('properties.DgStartPoint') === 'start';
+			return node.getData('properties.DgStartPoint') === 'start'
 		}
 
 		// Function to check if a node is an end node
 		function isEndNode(node) {
-		return node.getData('properties.DgEndPoint') === 'end';
+			return node.getData('properties.DgEndPoint') === 'end'
 		}
 
 		// ogma.styles.addNodeRule((node) => node.isVirtual(), {
@@ -208,7 +208,7 @@
 							position: 'center',
 							color: 'black',
 							size: 12,
-							minVisibleSize: 5,
+							minVisibleSize: 5
 						} 
 					}
 				}
