@@ -4,6 +4,8 @@
 	import { LayoutType, applyLayout, defaultForceOptions, defaultLocateOptions } from './layouting'
 	import Selector, { type selectElement } from '$lib/selector.svelte'
 	import Layout from '../../routes/+layout.svelte'
+	import AlgoLaunchPad from '$lib/algoLaunchPad.svelte'
+	import type { LinkTypes } from '$lib/customTypes'
 
 	// Props
 	export let rawGraph: RawGraph
@@ -32,23 +34,23 @@
 				content: (node) => node.getData('properties.Name'),
 				position: 'center',
 				color: 'black',
-    			maxLineLength: 140, // truncate
-    			size: 12,
-    			//backgroundColor: '#444',
-    			minVisibleSize: 5,
+				maxLineLength: 140, // truncate
+				size: 12,
+				//backgroundColor: '#444',
+				minVisibleSize: 5
 			},
-			  // Set color based on node type
-			color: node => {
+			// Set color based on node type
+			color: (node) => {
 				// Check if the node is a start node
 				if (isStartNode(node)) {
-				return 'green'; // Set color to green for start nodes
+					return 'green' // Set color to green for start nodes
 				}
 				// Check if the node is an end node
 				else if (isEndNode(node)) {
-				return 'red'; // Set color to red for end nodes
+					return 'red' // Set color to red for end nodes
 				}
 				// Default color for other nodes
-				return 'grey';
+				return 'grey'
 			},
 			//innerStroke: { color: 'gray', width: 1 },
 			badges: { bottomRight: { minVisibleSize: 20 } }
@@ -78,7 +80,7 @@
 		ogma.styles.addEdgeRule({
 			text: {
 				//content: edge => 'test ' + edge.getId()
-				content: edge => edge.getData('properties.id')
+				content: (edge) => edge.getData('properties.id') + '-' + edge.getData('type')
 			},
 			shape: {
 				body: () => 'line',
@@ -86,7 +88,7 @@
 				head: () => null,
 				tail: () => 'arrow'
 			}
-		});
+		})
 
 		ogma.events
 			.on('mouseover', (evt) => {
@@ -178,7 +180,7 @@
 							maxLineLength: 140, // truncate
 							size: 12,
 							//backgroundColor: '#444',
-							minVisibleSize: 5,
+							minVisibleSize: 5
 						},
 						badges: {
 							bottomRight: {
@@ -193,10 +195,11 @@
 				}
 			},
 			separateEdgesByDirection: true,
-  			edgeGenerator: edgeList => {
-    			const combinedId = edgeList.getId().join('-');
-    			return { id: 'grouped-edge-' + combinedId, 
-					attributes: { 
+			edgeGenerator: (edgeList) => {
+				const combinedId = edgeList.getId().join('-')
+				return {
+					id: 'grouped-edge-' + combinedId,
+					attributes: {
 						shape: {
 							body: () => 'line',
 							style: () => 'plain',
@@ -209,10 +212,10 @@
 							color: 'black',
 							size: 12,
 							minVisibleSize: 5
-						} 
+						}
 					}
 				}
-  			},
+			},
 			onCreated: (metaNode, visible, subNodes, subEdges) => {
 				if (visible) {
 					return ogma.layouts.force({
@@ -283,7 +286,7 @@
 	const computeCommunityLevel = (node: Node, forLevel: number = level) => {
 		const communities: number[] = node.getData('properties.' + algo)
 		//if (communities) return communities.slice(0, Math.min(forLevel, communities.length)).join('.')
-		if (communities) return communities[forLevel-1]
+		if (communities) return communities[forLevel - 1]
 		return undefined
 	}
 
@@ -308,6 +311,17 @@
 			ogma.transformations.getList().forEach((transformation) => {
 				transformation.refresh()
 			})
+		}
+	}
+
+	let launchPadOpened = false
+	let linkTypes: LinkTypes = []
+
+	const openAlgoLaunchPad = () => {
+		if (ogma != undefined) {
+			const linkTypeLabels: string[] = Array.from(new Set(ogma.getEdges().map((edge) => edge.getData('type'))))
+			linkTypes = linkTypeLabels.map((label) => ({ label, value: false }))
+			launchPadOpened = !launchPadOpened
 		}
 	}
 
@@ -352,17 +366,20 @@
 					bind:value={level}
 					on:change={() => changeLevelForAll()}
 				/>
+				<button on:click={() => openAlgoLaunchPad()}>Algo LaunchPad</button>
 			</div>
 		</div>
 		<div id="zoombar" class="zoombar">
 			<button on:click={() => ogma.view.zoomOut({ duration: 200 })}><i class="fa-solid fa-minus"></i></button>
 			<button on:click={() => ogma.view.locateGraph(defaultLocateOptions)}><i class="fas fa-crosshairs"></i></button>
 			<button on:click={() => ogma.view.zoomIn({ duration: 200 })}><i class="fa-solid fa-plus"></i></button>
-			<div>{currentZoomLevel}%</div>
+			<!-- <div>{currentZoomLevel}%</div> -->
 		</div>
 	{:catch error}
 		<div>error: {error.message}</div>
 	{/await}
+
+	<AlgoLaunchPad relationShipTypes={linkTypes} bind:isOpen={launchPadOpened} />
 </div>
 
 <style>

@@ -3,20 +3,31 @@
 	import Viewer from '$lib/viewer.svelte';
 	import type { PageData } from './$types';
 	import AnotherSelector from '$lib/anotherSelector/+page.svelte';
+	import { appName, pageTitle, relationType } from '$lib/generalStore'
+	import Viewer from '$lib/viewer.svelte'
+	import type { PageData } from './$types'
+	import AnotherSelector from '$lib/anotherSelector/+page.svelte'
+	import AlgoLaunchPad from '$lib/algoLaunchPad.svelte'
 
 	export let data: PageData;
 
 	$: $pageTitle = `DataGraph ${data.name} for ${$appName}`;
 
-	let selected = new Set<string>();
+	let selected = new Set<string>()
 
 	function toggleSelection(value: string) {
 		if (selected.has(value)) {
-			selected.delete(value);
+			selected.delete(value)
 		} else {
-			selected.add(value);
+			selected.add(value)
 		}
-		$relationType = Array.from(selected).join(', ');
+		$relationType = Array.from(selected).join(', ')
+	}
+
+	function getLinkTypes() {
+		const graph = data.graph
+		if (!graph) return
+		const linkTypes = new Set<string>()
 	}
 
 	async function submitSelections(event: Event) {
@@ -44,7 +55,7 @@
 	<div>Select an application</div>
 {/if}
 
-<div class="content">
+<!-- <div class="content">
 	{#await data.relationsTypes}
 		<span>Waiting for the links to be downloaded</span>
 	{:then relationsTypes}
@@ -69,7 +80,7 @@
 			<p>No links found</p>
 		{/if}
 	{/await}
-</div>
+</div> -->
 
 <style>
 	.content {
@@ -115,7 +126,7 @@
 		margin: 0.5rem 0;
 	}
 
-	.custom-select input[type="checkbox"] {
+	.custom-select input[type='checkbox'] {
 		margin-right: 0.5rem;
 	}
 </style>
