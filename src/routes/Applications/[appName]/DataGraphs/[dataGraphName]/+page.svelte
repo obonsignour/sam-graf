@@ -1,17 +1,11 @@
 <script lang="ts">
-	import { appName, pageTitle, relationType } from '$lib/generalStore';
-	import Viewer from '$lib/viewer.svelte';
-	import type { PageData } from './$types';
-	import AnotherSelector from '$lib/anotherSelector/+page.svelte';
 	import { appName, pageTitle, relationType } from '$lib/generalStore'
 	import Viewer from '$lib/viewer.svelte'
 	import type { PageData } from './$types'
-	import AnotherSelector from '$lib/anotherSelector/+page.svelte'
-	import AlgoLaunchPad from '$lib/algoLaunchPad.svelte'
 
-	export let data: PageData;
+	export let data: PageData
 
-	$: $pageTitle = `DataGraph ${data.name} for ${$appName}`;
+	$: $pageTitle = `DataGraph ${data.name} for ${$appName}`
 
 	let selected = new Set<string>()
 
@@ -31,20 +25,20 @@
 	}
 
 	async function submitSelections(event: Event) {
-		event.preventDefault();
-		const form = event.target as HTMLFormElement;
-		const formData = new FormData();
-		formData.set('selectedItems', JSON.stringify(Array.from(selected)));
+		event.preventDefault()
+		const form = event.target as HTMLFormElement
+		const formData = new FormData()
+		formData.set('selectedItems', JSON.stringify(Array.from(selected)))
 
 		const response = await fetch(form.action, {
 			method: 'POST',
-			body: formData,
-		});
+			body: formData
+		})
 
 		if (!response.ok) {
-			console.error('Failed to submit selections');
+			console.error('Failed to submit selections')
 		} else {
-			console.log('Selections submitted successfully');
+			console.log('Selections submitted successfully')
 		}
 	}
 </script>

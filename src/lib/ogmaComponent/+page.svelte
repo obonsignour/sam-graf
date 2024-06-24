@@ -4,7 +4,7 @@
 	import { LayoutType, applyLayout, defaultForceOptions, defaultLocateOptions } from './layouting'
 	import Selector, { type selectElement } from '$lib/selector.svelte'
 	import Layout from '../../routes/+layout.svelte'
-	import AlgoLaunchPad from '$lib/algoLaunchPad.svelte'
+	import AlgoLaunchPad from '$lib/AlgoLaunchPad/+page.svelte'
 	import type { LinkTypes } from '$lib/customTypes'
 
 	// Props
@@ -335,6 +335,7 @@
 					nodes.setSelected(true)
 				}
 			}
+			console.log('Algo:', algo)
 		}
 	}
 </script>
@@ -379,7 +380,7 @@
 		<div>error: {error.message}</div>
 	{/await}
 
-	<AlgoLaunchPad relationShipTypes={linkTypes} bind:isOpen={launchPadOpened} />
+	<AlgoLaunchPad relationShipTypes={linkTypes} {algo} bind:isOpen={launchPadOpened} />
 </div>
 
 <style>

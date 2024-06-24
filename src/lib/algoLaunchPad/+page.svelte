@@ -1,10 +1,14 @@
 <script lang="ts">
+	import type { PageData } from './$types'
 	import { onMount } from 'svelte'
-	import type { LinkType, LinkTypes } from './customTypes'
-	import { relationType } from './generalStore'
+	import type { LinkType, LinkTypes } from '$lib/customTypes'
+	import { page } from '$app/stores'
+	import { appName } from '$lib/generalStore'
+	import { enhance } from '$app/forms'
 
 	export let relationShipTypes: LinkTypes = []
 	export let isOpen: boolean = false
+	export let algo: string = ''
 
 	let isMounted = false
 	let launchpad: HTMLDialogElement
@@ -29,18 +33,37 @@
 		launchpad.close()
 	}
 
+	const computeAlgo = async () => {
+		console.log('Computing algo with selected types:', selectedTypes, $page.params.graphType)
+
+		const response = await fetch(`/API/Algos/${algo}`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				linkTypes: selectedTypes,
+				appName: $appName,
+				graphType: $page.params.graphType,
+				graphId: $page.params.graphId
+			})
+		})
+		console.log('Response:', response)
+		closeLaunchPad()
+	}
+
 	$: isMounted ? (isOpen ? showLaunchPad() : closeLaunchPad()) : null
 </script>
 
 <dialog id="launchpad">
-	<h1>Algo Launch Pad</h1>
+	<h1>Algo Launch Pad Test</h1>
 	<p>Here you can select the link types you want to use for the algorithm</p>
-	<form method="POST" action="#">
+	<form method="POST" action="#" use:enhance>
 		<ul>
 			{#each relationShipTypes as relType}
 				<li>
 					<label>
-						<input type="checkbox" bind:group={selectedTypes} value={relType.label} />
+						<input type="checkbox" name="selectedTypes" bind:group={selectedTypes} value={relType.label} />
 						{relType.label}
 					</label>
 				</li>
@@ -49,7 +72,8 @@
 		<p>
 			You have selected: {selectedTypes.join(', ')}
 		</p>
-		<button autofocus on:click={() => closeLaunchPad()}>Close</button>
+		<button on:click={computeAlgo}>Compute algo</button>
+		<button on:click={() => closeLaunchPad()}>Cancel</button>
 	</form>
 </dialog>
 
