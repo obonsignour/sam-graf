@@ -14,6 +14,7 @@
 	let launchpad: HTMLDialogElement
 
 	let selectedTypes: string[] = []
+	let statusMessage: string = ''
 
 	onMount(() => {
 		launchpad = document.getElementById('launchpad') as HTMLDialogElement
@@ -33,8 +34,14 @@
 		launchpad.close()
 	}
 
+	let taskId: number = 0
+
 	const computeAlgo = async () => {
 		console.log('Computing algo with selected types:', selectedTypes, $page.params.graphType)
+		if (selectedTypes.length === 0) {
+			statusMessage = 'Please select at least one link type'
+			return
+		}
 
 		const response = await fetch(`/API/Algos/${algo}`, {
 			method: 'POST',
@@ -48,11 +55,34 @@
 				graphId: $page.params.graphId
 			})
 		})
-		console.log('Response:', response)
-		closeLaunchPad()
+		const responseText = JSON.parse(await response.text())
+		taskId = responseText.taskId
+		//closeLaunchPad()
 	}
 
+	const poll = async function (taskId: number) {
+		let response = await fetch(`/API/Algos/Tasks/${taskId}`, { method: 'GET' })
+		let status = response.status
+		let i = 0
+		while (status !== 200) {
+			statusMessage = 'Computing algo...' + status + ' ' + i
+			console.log('Computing algo...' + status)
+			await wait(5000)
+			response = await fetch(`/API/Algos/Tasks/${taskId}`, { method: 'GET' })
+			status = response.status
+			i++
+		}
+		statusMessage = 'Algo computed'
+		return response
+	}
+
+	const wait = function (ms = 1000) {
+		return new Promise((resolve) => {
+			setTimeout(resolve, ms)
+		})
+	}
 	$: isMounted ? (isOpen ? showLaunchPad() : closeLaunchPad()) : null
+	$: poll(taskId)
 </script>
 
 <dialog id="launchpad">
@@ -72,6 +102,9 @@
 		<p>
 			You have selected: {selectedTypes.join(', ')}
 		</p>
+		/{#if statusMessage !== '' && statusMessage !== undefined}
+			<p>{statusMessage}</p>
+		{/if}
 		<button on:click={computeAlgo}>Compute algo</button>
 		<button on:click={() => closeLaunchPad()}>Cancel</button>
 	</form>

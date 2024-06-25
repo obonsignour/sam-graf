@@ -34,6 +34,6 @@ export const POST: RequestHandler = async ({ params, request }) => {
     return json({ success: false, error: responseText })
   }
 
-  return json({ success: true })
+  return new Response(responseText, { status: response.status })
 }
 
