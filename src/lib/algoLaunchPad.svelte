@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
-	import type { LinkTypes } from '$lib/customTypes'
+	import type { LinkTypes, Thread } from '$lib/customTypes'
 	import { page } from '$app/stores'
 	import { appName, activeThreads, nbActiveThreads } from '$lib/generalStore'
 	import { enhance } from '$app/forms'
@@ -37,6 +37,7 @@
 			statusMessage = 'Please select at least one link type'
 			return
 		}
+		statusMessage = 'You have selected: ' + selectedTypes.join(', ')
 
 		const response = await fetch(`/API/Algos/${algo}`, {
 			method: 'POST',
@@ -52,17 +53,17 @@
 		})
 		const responseText = JSON.parse(await response.text())
 		taskId = responseText.taskId
-		$activeThreads.push(taskId)
+		const thread: Thread = { id: taskId, label: algo, startDate: Date.now() }
+		$activeThreads = [...$activeThreads, thread]
 		$nbActiveThreads = $activeThreads.length
 		closeLaunchPad()
 	}
 
 	$: isMounted ? (isOpen ? showLaunchPad() : closeLaunchPad()) : null
-	// $: poll(taskId)
 </script>
 
 <dialog id="launchpad">
-	<h1>Algo Launch Pad Test</h1>
+	<h1>Algo Launch Pad</h1>
 	<p>Here you can select the link types you want to use for the algorithm</p>
 	<form method="POST" action="#" use:enhance>
 		<ul>
@@ -75,10 +76,8 @@
 				</li>
 			{/each}
 		</ul>
-		<p>
-			You have selected: {selectedTypes.join(', ')}
-		</p>
-		/{#if statusMessage !== '' && statusMessage !== undefined}
+
+		{#if statusMessage !== '' && statusMessage !== undefined}
 			<p>{statusMessage}</p>
 		{/if}
 		<button on:click={computeAlgo}>Compute algo</button>
