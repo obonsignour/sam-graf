@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '@fortawesome/fontawesome-free/css/all.min.css'
-	import OptionsPanel from '$lib/optionsPanel.svelte'
+	import LeftPanel from '$lib/leftPanel.svelte'
 	import Selector from '$lib/selector.svelte'
 	import { appName, pageTitle } from '$lib/generalStore'
 	import SearchDialog from '$lib/searchDialog/+page.svelte'
@@ -23,7 +23,7 @@
 <div class="page" data-sveltekit-preload-data="tap">
 	<Header initData={data.apps != undefined ? { apps: data.apps } : { apps: [] }} />
 	<div class="wrapper">
-		<OptionsPanel />
+		<LeftPanel />
 		<slot {isSearchOpened} />
 	</div>
 

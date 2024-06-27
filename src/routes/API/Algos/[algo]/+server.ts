@@ -13,12 +13,10 @@ export const POST: RequestHandler = async ({ params, request }) => {
   const linkTypes = body.linkTypes
 
   if (!appName || !graphType || !graphId || !linkTypes) {
-    return { status: 404, body: "at least one parameter missing when calling the algo" }
+    return new Response("at least one parameter missing when calling the algo", { status: 404 })
   }
-
-
   const URL = `http://${env.SAM_GRAF_SERVER}/Algos/${algo}/Compute`
-  // //`http://${env.SAM_GRAF_SERVER}/Applications/${appName}/Transactions/${transactionName}/LinkTypes/Selected`
+
   const response = await fetch(URL, {
     method: 'POST',
     headers: {
@@ -31,7 +29,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
   console.log('responseText:', responseText, " response.status:", response.status)
   if (!response.ok) {
     console.error('Failed to submit selections', response.status, response.statusText, responseText)
-    return json({ success: false, error: responseText })
+    return new Response(responseText, { status: response.status })
   }
 
   return new Response(responseText, { status: response.status })

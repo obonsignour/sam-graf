@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { PageData } from './$types'
 	import { onMount } from 'svelte'
-	import type { LinkType, LinkTypes } from '$lib/customTypes'
+	import type { LinkTypes } from '$lib/customTypes'
 	import { page } from '$app/stores'
-	import { appName } from '$lib/generalStore'
+	import { appName, activeThreads, nbActiveThreads } from '$lib/generalStore'
 	import { enhance } from '$app/forms'
 
 	export let relationShipTypes: LinkTypes = []
@@ -27,10 +27,6 @@
 
 	const closeLaunchPad = () => {
 		isOpen = false
-		/* TODO: either launch the computation of the algo when closing the dialog (will need to add a CANCEL button for when the user doesn't want to run the algo) or when the user clicks on the RUN button
-		means we need to have the name of the algo passed as a prameter to launchPad or we select the algo in launchPad
-		 */
-		console.log('Selected types:', selectedTypes)
 		launchpad.close()
 	}
 
@@ -57,32 +53,13 @@
 		})
 		const responseText = JSON.parse(await response.text())
 		taskId = responseText.taskId
-		//closeLaunchPad()
+		$activeThreads.push(taskId)
+		$nbActiveThreads = $activeThreads.length
+		closeLaunchPad()
 	}
 
-	const poll = async function (taskId: number) {
-		let response = await fetch(`/API/Algos/Tasks/${taskId}`, { method: 'GET' })
-		let status = response.status
-		let i = 0
-		while (status !== 200) {
-			statusMessage = 'Computing algo...' + status + ' ' + i
-			console.log('Computing algo...' + status)
-			await wait(5000)
-			response = await fetch(`/API/Algos/Tasks/${taskId}`, { method: 'GET' })
-			status = response.status
-			i++
-		}
-		statusMessage = 'Algo computed'
-		return response
-	}
-
-	const wait = function (ms = 1000) {
-		return new Promise((resolve) => {
-			setTimeout(resolve, ms)
-		})
-	}
 	$: isMounted ? (isOpen ? showLaunchPad() : closeLaunchPad()) : null
-	$: poll(taskId)
+	// $: poll(taskId)
 </script>
 
 <dialog id="launchpad">
