@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Ogma, { Transformation } from '@linkurious/ogma'
-	import type { RawGraph, Node, NodeList } from '@linkurious/ogma'
+	import type { RawGraph, Node, NodeList, Edge } from '@linkurious/ogma'
 	import { LayoutType, applyLayout, defaultForceOptions, defaultLocateOptions } from './layouting'
 	import Selector, { type selectElement } from '$lib/selector.svelte'
 	import Layout from '../../routes/+layout.svelte'
@@ -197,8 +197,12 @@
 			separateEdgesByDirection: true,
 			edgeGenerator: (edgeList) => {
 				const combinedId = edgeList.getId().join('-')
+				const combinedTypes = Array.from(new Set(edgeList.getData('type')))
 				return {
 					id: 'grouped-edge-' + combinedId,
+					data: {
+						type: combinedTypes
+					},
 					attributes: {
 						shape: {
 							body: () => 'line',
@@ -207,7 +211,7 @@
 							tail: () => 'arrow'
 						},
 						text: {
-							content: 'TEST',
+							content: combinedTypes.join(', '),
 							position: 'center',
 							color: 'black',
 							size: 12,
@@ -316,11 +320,16 @@
 
 	let launchPadOpened = false
 	let linkTypes: LinkTypes = []
-
 	const openAlgoLaunchPad = () => {
 		if (ogma != undefined) {
-			const linkTypeLabels: string[] = Array.from(new Set(ogma.getEdges().map((edge) => edge.getData('type'))))
-			linkTypes = linkTypeLabels.map((label) => ({ label, value: false }))
+			const linkTypeLabels = ogma.getEdges().reduce((acc: Set<string>, edge: Edge) => {
+				if (acc === undefined) return new Set([edge.getData('type')])
+				if (edge.isVirtual()) edge.getData('type').forEach((type: string) => acc.add(type))
+				else acc.add(edge.getData('type'))
+				return acc
+			}, new Set())
+			if (linkTypeLabels.length === 0) return
+			linkTypes = Array.from(linkTypeLabels).map((label) => ({ label, value: false }))
 			launchPadOpened = !launchPadOpened
 		}
 	}
