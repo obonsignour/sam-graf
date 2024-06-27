@@ -3,8 +3,7 @@
 	import type { RawGraph, Node, NodeList, Edge } from '@linkurious/ogma'
 	import { LayoutType, applyLayout, defaultForceOptions, defaultLocateOptions } from './layouting'
 	import Selector, { type selectElement } from '$lib/selector.svelte'
-	import Layout from '../../routes/+layout.svelte'
-	import AlgoLaunchPad from '$lib/AlgoLaunchPad/+page.svelte'
+	import AlgoLaunchPad from '$lib/AlgoLaunchPad.svelte'
 	import type { LinkTypes } from '$lib/customTypes'
 
 	// Props
