@@ -321,14 +321,16 @@
 	let linkTypes: LinkTypes = []
 	const openAlgoLaunchPad = () => {
 		if (ogma != undefined) {
-			const linkTypeLabels = ogma.getEdges().reduce((acc: Set<string>, edge: Edge) => {
+			const linkTypeLabels: Set<string> = ogma.getEdges('raw').reduce((acc: Set<string>, edge: Edge) => {
 				if (acc === undefined) return new Set([edge.getData('type')])
 				if (edge.isVirtual()) edge.getData('type').forEach((type: string) => acc.add(type))
 				else acc.add(edge.getData('type'))
 				return acc
 			}, new Set())
-			if (linkTypeLabels.length === 0) return
-			linkTypes = Array.from(linkTypeLabels).map((label) => ({ label, value: false }))
+			if (linkTypeLabels.size === 0) return
+			linkTypes = Array.from(linkTypeLabels)
+				.sort()
+				.map((label) => ({ label: label, value: false }))
 			launchPadOpened = !launchPadOpened
 		}
 	}
