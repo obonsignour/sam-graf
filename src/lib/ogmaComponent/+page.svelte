@@ -3,7 +3,7 @@
 	import type { RawGraph, Node, NodeList, Edge } from '@linkurious/ogma'
 	import { LayoutType, applyLayout, defaultForceOptions, defaultLocateOptions } from './layouting'
 	import Selector, { type selectElement } from '$lib/selector.svelte'
-	import AlgoLaunchPad from '$lib/AlgoLaunchPad.svelte'
+	import AlgoLaunchPad from '$lib/algoLaunchPad.svelte'
 	import type { LinkTypes } from '$lib/customTypes'
 
 	// Props
@@ -237,7 +237,8 @@
 		{ value: 'None', label: 'None (full graph view)' },
 		{ value: 'UndirectedLouvain', label: 'UndirectedLouvain' },
 		{ value: 'DirectedLouvain', label: 'DirectedLouvain' },
-		{ value: 'Leiden', label: 'Leiden' }
+		{ value: 'Leiden', label: 'Leiden' },
+		{ value: 'SLPA', label: 'SLPA (overlap)' }
 	]
 
 	const onChangeAlgo = (event: { detail: any }) => {
