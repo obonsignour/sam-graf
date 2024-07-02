@@ -12,9 +12,11 @@
 	{:then transactions}
 		{#if transactions}
 			<div class="header" id="header_id">Transaction Id</div>
+			<div class="header" id="header_id">Transaction Id - new page</div>
 			<div class="header" id="header_name">Transaction Name</div>
 			{#each transactions as transaction}
 				<div id={transaction.id}><a href="/Applications/{$appName}/Transactions/{transaction.id}">{transaction.id}</a></div>
+				<div id={transaction.id}><a href="/Applications/{$appName}/Graphs/Transaction/{transaction.id}">{transaction.id}</a></div>
 				<div id={transaction.id}><a href="/Applications/{$appName}/Transactions/{transaction.id}">{transaction.name} </a></div>
 			{/each}
 		{/if}
@@ -25,8 +27,8 @@
 	.content {
 		margin: 1rem;
 		display: grid;
-		grid-template-columns: 1fr 1fr;
-		height: 90%;
+		grid-template-columns: 2fr 3fr 3fr;
+		height: 100%;
 		min-width: 40%;
 		max-width: 80%;
 		overflow-y: auto;

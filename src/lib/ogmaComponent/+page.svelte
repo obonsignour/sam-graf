@@ -4,6 +4,7 @@
 	import { LayoutType, applyLayout, defaultForceOptions, defaultLocateOptions } from './layouting'
 	import Selector, { type selectElement } from '$lib/selector.svelte'
 	import AlgoLaunchPad from '$lib/algoLaunchPad.svelte'
+	import MetricsPanel from '$lib/metricsPanel.svelte';
 	import type { LinkTypes } from '$lib/customTypes'
 
 	// Props
@@ -21,7 +22,6 @@
 	const setup = (node: HTMLDivElement, graph: RawGraph) => {
 		const nodeId = node.getAttribute('id')
 		let communityGrouping: Transformation<any, any>
-		let communityFlagging: Transformation<any, any>
 
 		if (nodeId === null) return // check to prevent TypeScript throwing an error on container: node.getAttribute('id')
 		ogma = new Ogma({
@@ -79,7 +79,8 @@
 		ogma.styles.addEdgeRule({
 			text: {
 				//content: edge => 'test ' + edge.getId()
-				content: (edge) => edge.getData('properties.id') + '-' + edge.getData('type')
+				//content: (edge) => edge.getData('properties.id') + '-' + edge.getData('type')
+				content: (edge) => edge.getData('type')
 			},
 			shape: {
 				body: () => 'line',

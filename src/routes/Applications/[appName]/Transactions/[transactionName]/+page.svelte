@@ -1,39 +1,44 @@
 <script lang="ts">
-	import { appName, pageTitle, relationType } from '$lib/generalStore';
-	import Viewer from '$lib/viewer.svelte';
-	import type { PageData } from './$types';
-	import AnotherSelector from '$lib/anotherSelector/+page.svelte';
+	import { appName, pageTitle, relationType } from '$lib/generalStore'
+	import Viewer from '$lib/viewer.svelte'
+	import type { PageData } from './$types'
 
-	export let data: PageData;
+	export let data: PageData
 
-	$: $pageTitle = `Transaction ${data.name} for ${$appName}`;
+	$: $pageTitle = `Transaction ${data.name} for ${$appName}`
 
-	let selected = new Set<string>();
+	let selected = new Set<string>()
 
 	function toggleSelection(value: string) {
 		if (selected.has(value)) {
-			selected.delete(value);
+			selected.delete(value)
 		} else {
-			selected.add(value);
+			selected.add(value)
 		}
-		$relationType = Array.from(selected).join(', ');
+		$relationType = Array.from(selected).join(', ')
+	}
+
+	function getLinkTypes() {
+		const graph = data.graph
+		if (!graph) return
+		const linkTypes = new Set<string>()
 	}
 
 	async function submitSelections(event: Event) {
-		event.preventDefault();
-		const form = event.target as HTMLFormElement;
-		const formData = new FormData();
-		formData.set('selectedItems', JSON.stringify(Array.from(selected)));
+		event.preventDefault()
+		const form = event.target as HTMLFormElement
+		const formData = new FormData()
+		formData.set('selectedItems', JSON.stringify(Array.from(selected)))
 
 		const response = await fetch(form.action, {
 			method: 'POST',
-			body: formData,
-		});
+			body: formData
+		})
 
 		if (!response.ok) {
-			console.error('Failed to submit selections');
+			console.error('Failed to submit selections')
 		} else {
-			console.log('Selections submitted successfully');
+			console.log('Selections submitted successfully')
 		}
 	}
 </script>
@@ -44,7 +49,7 @@
 	<div>Select an application</div>
 {/if}
 
-<div class="content">
+<!-- <div class="content">
 	{#await data.relationsTypes}
 		<span>Waiting for the links to be downloaded</span>
 	{:then relationsTypes}
@@ -69,7 +74,7 @@
 			<p>No links found</p>
 		{/if}
 	{/await}
-</div>
+</div> -->
 
 <style>
 	.content {
@@ -115,7 +120,7 @@
 		margin: 0.5rem 0;
 	}
 
-	.custom-select input[type="checkbox"] {
+	.custom-select input[type='checkbox'] {
 		margin-right: 0.5rem;
 	}
 </style>
