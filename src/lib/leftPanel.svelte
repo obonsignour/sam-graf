@@ -44,6 +44,7 @@
 		<a href="/Applications/{$appName}/Levels/3">Back to levels</a>
 		<p class="action"><a href="/Applications/{$appName}/DataGraphs">DataGraphs</a></p>
 		<p class="action"><a href="/Applications/{$appName}/Transactions">Transactions</a></p>
+		<p class="action"><a href="/Applications/{$appName}/ApplicationGraph">Application Graph</a></p>
 		{#if nbThreads > 0}
 			{nbThreads} algo(s) running
 
