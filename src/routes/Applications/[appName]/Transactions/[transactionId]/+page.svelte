@@ -7,15 +7,15 @@
 	export let data: PageData
 
 	setContext('graphId', data.id)
-	setContext('graphType', 'Application')
+	setContext('graphType', 'Transaction')
 
-	$: $pageTitle = `Showing the full graph for ${$appName} - max 1,000 nodes`
+	$: $pageTitle = `Transaction ${data.id} for ${$appName}`
 </script>
 
 {#if data.rawGraph}
 	<Viewer rawGraph={data.rawGraph} />
 {:else}
-	<div>Select an application to display the full graph (limited to 1000 nodes for now)</div>
+	<div>Select an application</div>
 {/if}
 
 <style>

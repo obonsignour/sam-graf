@@ -3,9 +3,10 @@
 	import type { RawGraph, Node, NodeList, Edge } from '@linkurious/ogma'
 	import { LayoutType, applyLayout, defaultForceOptions, defaultLocateOptions } from './layouting'
 	import Selector, { type selectElement } from '$lib/selector.svelte'
-	import AlgoLaunchPad from '$lib/algoLaunchPad.svelte'
-	import MetricsPanel from '$lib/metricsPanel.svelte';
+	import AlgoLaunchPad from '$lib/AlgoLaunchPad.svelte'
+	import MetricsPanel from '$lib/metricsPanel.svelte'
 	import type { LinkTypes } from '$lib/customTypes'
+	import { getContext } from 'svelte'
 
 	// Props
 	export let rawGraph: RawGraph
@@ -18,6 +19,9 @@
 	let algo = 'Leiden'
 	let level = 1
 	let currentZoomLevel: number = 100
+
+	const graphType = getContext('graphType')
+	const graphId = getContext('graphId')
 
 	const setup = (node: HTMLDivElement, graph: RawGraph) => {
 		const nodeId = node.getAttribute('id')

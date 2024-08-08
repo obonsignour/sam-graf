@@ -38,13 +38,13 @@
 </script>
 
 <div id="options" class="options">
-	<h1>{$appName}</h1>
+	<a href="/Applications/{$appName}"><h1>{$appName}</h1></a>
 	{#if $appName !== 'undefined'}
-		<a href="/Applications/{$appName}/Objects">Display objects</a>
-		<a href="/Applications/{$appName}/Levels/3">Back to levels</a>
+		<!-- <a href="/Applications/{$appName}/Objects">Display objects</a>
+		<a href="/Applications/{$appName}/Levels/3">Back to levels</a> -->
 		<p class="action"><a href="/Applications/{$appName}/DataGraphs">DataGraphs</a></p>
 		<p class="action"><a href="/Applications/{$appName}/Transactions">Transactions</a></p>
-		<p class="action"><a href="/Applications/{$appName}/ApplicationGraph">Application Graph</a></p>
+
 		{#if nbThreads > 0}
 			{nbThreads} algo(s) running
 

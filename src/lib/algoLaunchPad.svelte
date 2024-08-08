@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte'
+	import { getContext, onMount } from 'svelte'
 	import type { LinkTypes, Thread } from '$lib/customTypes'
 	import { page } from '$app/stores'
 	import { appName, activeThreads, nbActiveThreads } from '$lib/generalStore'
@@ -8,6 +8,8 @@
 	export let relationShipTypes: LinkTypes = []
 	export let isOpen: boolean = false
 	export let algo: string = ''
+	const graphType = getContext('graphType')
+	const graphId = getContext('graphId')
 
 	let isMounted = false
 	let launchpad: HTMLDialogElement
@@ -32,13 +34,13 @@
 	let taskId: number = 0
 
 	const computeAlgo = async () => {
-		console.log('Computing algo with selected types:', selectedTypes, $page.params.graphType)
+		console.log('Computing algo with selected types:', selectedTypes, graphType)
 		if (selectedTypes.length === 0) {
 			statusMessage = 'Please select at least one link type'
 			return
 		}
 		statusMessage = 'You have selected: ' + selectedTypes.join(', ')
-
+		console.log('GraphId: ', graphId)
 		const response = await fetch(`/API/Algos/${algo}`, {
 			method: 'POST',
 			headers: {
@@ -47,15 +49,23 @@
 			body: JSON.stringify({
 				linkTypes: selectedTypes,
 				appName: $appName,
-				graphType: $page.params.graphType,
-				graphId: $page.params.graphId
+				graphType: graphType,
+				graphId: graphId
 			})
 		})
-		const responseText = JSON.parse(await response.text())
-		taskId = responseText.taskId
-		const thread: Thread = { id: taskId, label: algo, startDate: Date.now() }
-		$activeThreads = [...$activeThreads, thread]
-		$nbActiveThreads = $activeThreads.length
+		if (response.status >= 200 && response.status < 300) {
+			// Success
+			console.log('Success:', response)
+			const responseText = JSON.parse(await response.text())
+			taskId = responseText.taskId
+			const thread: Thread = { id: taskId, label: algo, startDate: Date.now() }
+			$activeThreads = [...$activeThreads, thread]
+			$nbActiveThreads = $activeThreads.length
+		} else {
+			const responseText = JSON.parse(await response.text())
+			console.error('Error:', responseText)
+		}
+
 		closeLaunchPad()
 	}
 

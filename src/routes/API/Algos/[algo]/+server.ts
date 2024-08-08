@@ -13,7 +13,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
   const linkTypes = body.linkTypes
 
   if (!appName || !graphType || !graphId || !linkTypes) {
-    return new Response("at least one parameter missing when calling the algo", { status: 404 })
+    console.error('at least one parameter missing when calling the algo', body)
+    return new Response(JSON.stringify({ error: "at least one parameter missing when calling the algo" }), { status: 400 })
   }
   const URL = `http://${env.SAM_GRAF_SERVER}/Algos/${algo}/Compute`
 

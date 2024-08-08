@@ -1,6 +1,5 @@
 import type { PageServerLoad } from './$types'
 import { env } from '$env/dynamic/private'
-import type { selectElement } from '$lib/selector.svelte'
 
 export const load = (async ({ params }) => {
   const { appName } = params
