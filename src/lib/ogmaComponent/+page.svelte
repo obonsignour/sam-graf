@@ -293,7 +293,7 @@
 	}
 	const setIdGroupForNodes = (nodes: NodeList, forLevel: number = level) => nodes.setData('groupId', (node) => computeCommunityLevel(node, forLevel))
 	const computeCommunityLevel = (node: Node, forLevel: number = level) => {
-		const communities: number[] = node.getData('properties.' + algo)
+		const communities: number[] = graphType == 'Model' ? node.getData('properties.Community') : node.getData('properties.' + algo)
 		//if (communities) return communities.slice(0, Math.min(forLevel, communities.length)).join('.')
 		if (communities) return communities[forLevel - 1]
 		return undefined
