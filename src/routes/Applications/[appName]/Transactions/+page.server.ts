@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types'
 import { env } from '$env/dynamic/private'
+import type { GraphsRow } from '$lib/customTypes'
 
 export const load = (async ({ params }) => {
   const { appName } = params
@@ -7,7 +8,7 @@ export const load = (async ({ params }) => {
   if (!res.ok) {
     return { status: res.status }
   }
-  const transactions: [{ id: string, name: string }] = await res.json()
+  const transactions: GraphsRow[] = await res.json()
   if (!transactions) {
     return { status: 404 }
   }

@@ -13,9 +13,17 @@
 		{#if datagraphs}
 			<div class="header" id="header_id">Datagraph Id</div>
 			<div class="header" id="header_name">Datagraph Name</div>
+			<div class="header" id="header_name">Computed Models</div>
 			{#each datagraphs as datagraph}
 				<div id={datagraph.id}><a href="/Applications/{$appName}/DataGraphs/{datagraph.id}">{datagraph.id}</a></div>
-				<div id={datagraph.id}><a href="/Applications/{$appName}/DataGraphs/{datagraph.id}">{datagraph.name} </a></div>
+				<div id={datagraph.id}><a href="/Applications/{$appName}/DataGraphs/{datagraph.id}">{datagraph.graphName} </a></div>
+				<div id={datagraph.id}>
+					{#each datagraph.modelNames as modelName}
+						<a class="model_name" href="/Applications/{$appName}/Models/{modelName}">{modelName}</a>
+					{:else}
+						No model
+					{/each}
+				</div>
 			{/each}
 		{/if}
 	{/await}
@@ -25,7 +33,7 @@
 	.content {
 		margin: 1rem;
 		display: grid;
-		grid-template-columns: 2fr 3fr;
+		grid-template-columns: 2fr 3fr 3fr;
 		height: 100%;
 		min-width: 40%;
 		max-width: 80%;
@@ -35,5 +43,8 @@
 	.header {
 		font-weight: 600;
 		font-size: 1.5rem;
+	}
+	.content .model_name {
+		margin-right: 1rem;
 	}
 </style>
