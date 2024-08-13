@@ -18,8 +18,8 @@
 			<div class="header" id="header_name">Name</div>
 			<div class="header" id="header_models">Computed Models</div>
 			{#each graphRows as graphRow}
-				<div id={graphRow.id}><a href="/Applications/{$appName}/Graphs/{graphRow.id}">{graphRow.id}</a></div>
-				<div id={graphRow.id}><a href="/Applications/{$appName}/Graphs/{graphRow.id}">{graphRow.graphName} </a></div>
+				<div id={graphRow.id}><a href="/Applications/{$appName}/{graphType}s/{graphRow.id}">{graphRow.id}</a></div>
+				<div id={graphRow.id}><a href="/Applications/{$appName}/{graphType}s/{graphRow.id}">{graphRow.graphName} </a></div>
 				<div id={graphRow.id}>
 					{#each graphRow.modelNames as modelName}
 						<a class="model_name" href="/Applications/{$appName}/Models/{modelName}">{modelName}</a>
