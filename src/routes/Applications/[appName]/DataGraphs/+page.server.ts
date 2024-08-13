@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types'
 import { env } from '$env/dynamic/private'
 import type { selectElement } from '$lib/selector.svelte'
-import type { GraphsRow } from '$lib/customTypes'
+import type { GraphListRow } from '$lib/customTypes'
 
 export const load = (async ({ params }) => {
   const { appName } = params
@@ -9,7 +9,7 @@ export const load = (async ({ params }) => {
   if (!res.ok) {
     return { status: res.status }
   }
-  const datagraphs: GraphsRow[] = await res.json()
+  const datagraphs: GraphListRow[] = await res.json()
   if (!datagraphs) {
     return { status: 404 }
   }

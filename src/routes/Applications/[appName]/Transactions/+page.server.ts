@@ -1,16 +1,17 @@
 import type { PageServerLoad } from './$types'
 import { env } from '$env/dynamic/private'
-import type { GraphsRow } from '$lib/customTypes'
+import type { GraphListRow } from '$lib/customTypes'
+import { error } from '@sveltejs/kit'
 
 export const load = (async ({ params }) => {
   const { appName } = params
   const res = await fetch(`http://${env.SAM_GRAF_SERVER}/Applications/${appName}/Transactions`)
   if (!res.ok) {
-    return { status: res.status }
+    error(res.status, `Failed to load transactions: ${res.status}`)
   }
-  const transactions: GraphsRow[] = await res.json()
+  const transactions: GraphListRow[] = await res.json()
   if (!transactions) {
-    return { status: 404 }
+    error(404, `Failed to load transactions: ${res.status}`)
   }
   return { transactions: transactions }
 }) satisfies PageServerLoad
