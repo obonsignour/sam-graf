@@ -13,5 +13,6 @@ export const load = (async ({ params }) => {
   if (!transactions) {
     error(404, `Failed to load transactions: ${res.status}`)
   }
+  console.log("Returning: ", transactions.length, ' transactions')
   return { transactions: transactions }
 }) satisfies PageServerLoad

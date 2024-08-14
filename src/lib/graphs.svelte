@@ -9,29 +9,25 @@
 </script>
 
 <div class="content">
-	{#await graphRows}
-		<dialog>Loading {graphType} list</dialog>
-	{:then graphRows}
-		<h1>{graphType}</h1>
-		{#if graphRows}
-			<div class="header" id="header_id">Id</div>
-			<div class="header" id="header_name">Name</div>
-			<div class="header" id="header_models">Computed Models</div>
-			{#each graphRows as graphRow}
-				<div id={graphRow.id}><a href="/Applications/{$appName}/{graphType}s/{graphRow.id}">{graphRow.id}</a></div>
-				<div id={graphRow.id}><a href="/Applications/{$appName}/{graphType}s/{graphRow.id}">{graphRow.graphName} </a></div>
-				<div id={graphRow.id}>
-					{#each graphRow.modelNames as modelName}
-						<a class="model_name" href="/Applications/{$appName}/Models/{modelName}">{modelName}</a>
-					{:else}
-						No model
-					{/each}
-				</div>
-			{/each}
-		{:else}
-			<div>No {graphType}</div>
-		{/if}
-	{/await}
+	<h1>{graphType}</h1>
+	{#if graphRows}
+		<div class="header" id="header_id">Id</div>
+		<div class="header" id="header_name">Name</div>
+		<div class="header" id="header_models">Computed Models</div>
+		{#each graphRows as graphRow}
+			<div id={graphRow.id}><a href="/Applications/{$appName}/{graphType}s/{graphRow.id}">{graphRow.id}</a></div>
+			<div id={graphRow.id}><a href="/Applications/{$appName}/{graphType}s/{graphRow.id}">{graphRow.graphName} </a></div>
+			<div id={graphRow.id}>
+				{#each graphRow.modelNames as modelName}
+					<a class="model_name" href="/Applications/{$appName}/Models/{modelName}">{modelName}</a>
+				{:else}
+					No model
+				{/each}
+			</div>
+		{/each}
+	{:else}
+		<div>No {graphType}</div>
+	{/if}
 </div>
 
 <style>

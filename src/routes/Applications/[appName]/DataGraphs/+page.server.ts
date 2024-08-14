@@ -13,5 +13,6 @@ export const load = (async ({ params }) => {
   if (!datagraphs) {
     error(404, `Failed to load datagraphs: ${res.status}`)
   }
+  console.log("Returning: ", datagraphs.length, ' datagraphs')
   return { datagraphs: datagraphs }
 }) satisfies PageServerLoad

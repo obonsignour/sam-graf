@@ -12,11 +12,15 @@
 	$: $pageTitle = `Showing the full graph for ${$appName} - max 1,000 nodes`
 </script>
 
-{#if data.rawGraph}
-	<Viewer rawGraph={data.rawGraph} />
-{:else}
-	<div>Select an application to display the full graph (limited to 1000 nodes for now)</div>
-{/if}
+{#await data}
+	<dialog>Loading data</dialog>
+{:then data}
+	{#if data.id}
+		<Viewer graphData={{ rawGraph: data.rawGraph, id: data.id }} />
+	{:else}
+		<div>Select an application to display the full graph (limited to 1000 nodes for now)</div>
+	{/if}
+{/await}
 
 <style>
 </style>
