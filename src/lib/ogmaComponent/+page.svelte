@@ -160,7 +160,7 @@
 					data: {
 						groupId: groupId,
 						subNodes: nodes,
-						level: level
+						level: nodes.get(0).getData('level')
 					},
 					attributes: {
 						color: 'white',
@@ -293,7 +293,7 @@
 	}
 	const setIdGroupForNodes = (nodes: NodeList, forLevel: number = level) => {
 		nodes.setData('groupId', (node) => computeCommunityLevel(node, forLevel))
-		nodes.setData('level', () => forLevel + 1)
+		nodes.setData('level', () => forLevel)
 	}
 	const computeCommunityLevel = (node: Node, forLevel: number = level) => {
 		const communities: number[] = graphType == 'Model' ? node.getData('properties.Community') : node.getData('properties.' + algo)
