@@ -10,6 +10,9 @@
 
 <div class="content">
 	<h1>{graphType}</h1>
+	{#await graphRows}
+	<p>loading data</p>
+	{:then}
 	{#if graphRows}
 		<div class="header" id="header_id">Id</div>
 		<div class="header" id="header_name">Name</div>
@@ -28,6 +31,7 @@
 	{:else}
 		<div>No {graphType}</div>
 	{/if}
+	{/await}
 </div>
 
 <style>

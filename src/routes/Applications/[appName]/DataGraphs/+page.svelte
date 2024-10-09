@@ -9,5 +9,5 @@
 {#await data}
 	<dialog>Loading data</dialog>
 {:then data}
-	<Graphs graphListData={{ graphType: 'DataGraph', graphRows: data.datagraphs }} />
+		<Graphs graphListData={{ graphType: 'DataGraph', graphRows: data.datagraphs }} />
 {/await}

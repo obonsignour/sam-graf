@@ -3,7 +3,7 @@
 	import type { RawGraph, Node, NodeList, Edge } from '@linkurious/ogma'
 	import { LayoutType, applyLayout, defaultForceOptions, defaultLocateOptions } from './layouting'
 	import Selector, { type selectElement } from '$lib/selector.svelte'
-	import AlgoLaunchPad from '$lib/AlgoLaunchPad.svelte'
+	import AlgoLaunchPad from '$lib/algoLaunchPad.svelte'
 	import MetricsPanel from '$lib/metricsPanel.svelte'
 	import type { LinkTypes } from '$lib/customTypes'
 	import { getContext } from 'svelte'
@@ -291,7 +291,10 @@
 			}
 		}
 	}
-	const setIdGroupForNodes = (nodes: NodeList, forLevel: number = level) => nodes.setData('groupId', (node) => computeCommunityLevel(node, forLevel))
+	const setIdGroupForNodes = (nodes: NodeList, forLevel: number = level) => {
+		nodes.setData('groupId', (node) => computeCommunityLevel(node, forLevel))
+		nodes.setData('level', () => forLevel + 1)
+	}
 	const computeCommunityLevel = (node: Node, forLevel: number = level) => {
 		const communities: number[] = graphType == 'Model' ? node.getData('properties.Community') : node.getData('properties.' + algo)
 		//if (communities) return communities.slice(0, Math.min(forLevel, communities.length)).join('.')
