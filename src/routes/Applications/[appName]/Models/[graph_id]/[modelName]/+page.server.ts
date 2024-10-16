@@ -4,14 +4,14 @@ import { env } from '$env/dynamic/private'
 import { error } from '@sveltejs/kit'
 
 export const load = (async ({ params, url }) => {
-	const { appName, modelName } = params
+	const { appName, graph_id, modelName } = params
 	const { searchParams } = url
 
-	console.log('Loading model:', appName, modelName, searchParams.get('algo'))
+	console.log('Loading model:', appName, graph_id, modelName, searchParams.get('algo'))
 	if (!appName) {
 		error(404, `Application ${appName} doesn\'t exist`)
 	}
-	const URL = `http://${env.SAM_GRAF_SERVER}/Applications/${appName}/Models/${modelName}`
+	const URL = `http://${env.SAM_GRAF_SERVER}/Applications/${appName}/Models/${graph_id}/${modelName}`
 	const res = await fetch(URL)
 	if (res.status !== 200) {
 		console.error('Failed to load graph model:', res.status)

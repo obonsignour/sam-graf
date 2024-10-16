@@ -22,7 +22,7 @@
 			<div id={graphRow.id}><a href="/Applications/{$appName}/{graphType}s/{graphRow.id}">{graphRow.graphName} </a></div>
 			<div id={graphRow.id}>
 				{#each graphRow.modelNames as modelName}
-					<a class="model_name" href="/Applications/{$appName}/Models/{modelName}">{modelName}</a>
+					<a class="model_name" href="/Applications/{$appName}/Models/{graphRow.id}/{modelName}">{modelName}</a>
 				{:else}
 					No model
 				{/each}
