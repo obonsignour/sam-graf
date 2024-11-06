@@ -7,10 +7,14 @@
 	import MetricsPanel from '$lib/metricsPanel.svelte'
 	import type { LinkTypes } from '$lib/customTypes'
 	import { getContext } from 'svelte'
+	//import { startNodesStore, endNodesStore } from '$lib/generalStore'
 
 	// Props
 	export let rawGraph: RawGraph
 	export let hoveredIds: string[]
+
+	//export let startNodes: string[] = [];
+  	//export let endNodes: string[] = [];
 
 	// Internals - Global
 	let ogma: Ogma
@@ -19,9 +23,34 @@
 	let algo = 'Leiden'
 	let level = 1
 	let currentZoomLevel: number = 100
+	let startNodes: string[] = [];
+	let endNodes: string[] = [];
 
 	const graphType = getContext('graphType')
 	const graphId = getContext('graphId')
+
+	function computeStartAndEndNodes(graph: RawGraph) {
+		const startNodes: string[] = []
+		const endNodes: string[] = []
+
+		if (!graph || !graph.nodes) {
+			console.error('Invalid graph structure', graph)
+			return { startNodes, endNodes }
+		}
+
+		graph.nodes.forEach((node: Node) => {
+			if (node.data.properties?.StartingPoint === true) {
+				startNodes.push(node.id)
+			}
+			if (node.data.properties?.EndingPoint === true) {
+				endNodes.push(node.id)
+			}
+		})
+
+		return { startNodes, endNodes }
+	}
+
+	({ startNodes, endNodes } = computeStartAndEndNodes(rawGraph));
 
 	const setup = (node: HTMLDivElement, graph: RawGraph) => {
 		const nodeId = node.getAttribute('id')
@@ -31,6 +60,17 @@
 		ogma = new Ogma({
 			container: nodeId
 		})
+
+		console.log('Graph:', graph);
+
+		
+		console.log('Start Nodes:', startNodes);
+		console.log('End Nodes:', endNodes);
+
+		// Update the store values
+		//startNodesStore.set(startNodes);
+		//endNodesStore.set(endNodes);
+
 		// Nodes style
 		ogma.styles.addNodeRule((node) => !node.isVirtual(), {
 			text: {
@@ -44,30 +84,22 @@
 			},
 			// Set color based on node type
 			color: (node) => {
+				const nodeId = node.getId(); // Get the node's ID
+
 				// Check if the node is a start node
-				if (isStartNode(node)) {
-					return 'green' // Set color to green for start nodes
+				if (startNodes.includes(nodeId)) {
+					return 'green'; // Set color to green for start nodes
 				}
 				// Check if the node is an end node
-				else if (isEndNode(node)) {
-					return 'red' // Set color to red for end nodes
+				else if (endNodes.includes(nodeId)) {
+					return 'red'; // Set color to red for end nodes
 				}
 				// Default color for other nodes
-				return 'grey'
+				return 'grey';
 			},
-			//innerStroke: { color: 'gray', width: 1 },
+			// innerStroke: { color: 'gray', width: 1 },
 			badges: { bottomRight: { minVisibleSize: 20 } }
-		})
-
-		// Function to check if a node is a start node
-		function isStartNode(node) {
-			return node.getData('properties.DgStartPoint') === 'start'
-		}
-
-		// Function to check if a node is an end node
-		function isEndNode(node) {
-			return node.getData('properties.DgEndPoint') === 'end'
-		}
+		});
 
 		// ogma.styles.addNodeRule((node) => node.isVirtual(), {
 		// 	text: {
@@ -140,10 +172,18 @@
 			})
 			.then(() => {
 				communityGrouping = defineGrouping()
+				console.log('\nAAAAAAAAAAAAA')
+				console.log('\ncommunityGrouping:', communityGrouping)
 				return communityGrouping.whenApplied()
 			})
-			.then(() => applyLayout(ogma, LayoutType.Force, defaultForceOptions))
-
+			// Layout when loading the page here  
+			//.then(() => applyLayout(ogma, LayoutType.Force, defaultForceOptions))
+			.then(() => applyLayout(ogma, LayoutType.Hierarchical, {
+				duration: 300,
+				roots: [startNodes],
+				sinks: [endNodes]
+			}))
+			
 		return {
 			destroy() {
 				return ogma.destroy()
@@ -357,6 +397,17 @@
 			console.log('Algo:', algo)
 		}
 	}
+
+	// Add the function that will call applyLayout with the Sami layout
+	const applySamiLayout = () => {
+		//const graph = rawGraph;
+		applyLayout(ogma, LayoutType.Sami, {
+		graph: rawGraph,
+		//graph:
+		entryNodes: startNodes,
+		exitNodes: endNodes
+		});
+    }
 </script>
 
 <div class="ogma-graph">
@@ -368,6 +419,7 @@
 			<button on:click={() => applyLayout(ogma, LayoutType.Force)}>Force layout</button>
 			<button on:click={() => applyLayout(ogma, LayoutType.ForceLink)}>ForceLink layout</button>
 			<button on:click={() => applyLayout(ogma, LayoutType.Hierarchical)}>Hierarchical layout</button>
+			<button on:click={applySamiLayout}>Sami custom layout</button>
 			<Selector selected={algo} elementType="algo" elements={algos} on:newValueSelectedInCombo={onChangeAlgo} />
 			<div class="custom-checkbox">
 				<input type="checkbox" name="content-visible" id="content-visible" bind:checked={isContentVisible} on:change={() => toggleContentVisible()} />
