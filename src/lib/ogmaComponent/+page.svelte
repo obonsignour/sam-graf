@@ -40,10 +40,10 @@
 
 		graph.nodes.forEach((node: Node) => {
 			if (node.data.properties?.StartingPoint === true) {
-				startNodes.push(node.id)
+				startNodes.push(String(node.id))
 			}
 			if (node.data.properties?.EndingPoint === true) {
-				endNodes.push(node.id)
+				endNodes.push(String(node.id))
 			}
 		})
 
@@ -62,7 +62,6 @@
 		})
 
 		console.log('Graph:', graph);
-
 		
 		console.log('Start Nodes:', startNodes);
 		console.log('End Nodes:', endNodes);
@@ -84,7 +83,7 @@
 			},
 			// Set color based on node type
 			color: (node) => {
-				const nodeId = node.getId(); // Get the node's ID
+				const nodeId = String(node.getId()); // Get the node's ID
 
 				// Check if the node is a start node
 				if (startNodes.includes(nodeId)) {
@@ -172,17 +171,15 @@
 			})
 			.then(() => {
 				communityGrouping = defineGrouping()
-				console.log('\nAAAAAAAAAAAAA')
-				console.log('\ncommunityGrouping:', communityGrouping)
 				return communityGrouping.whenApplied()
 			})
 			// Layout when loading the page here  
-			//.then(() => applyLayout(ogma, LayoutType.Force, defaultForceOptions))
-			.then(() => applyLayout(ogma, LayoutType.Hierarchical, {
-				duration: 300,
-				roots: [startNodes],
-				sinks: [endNodes]
-			}))
+			.then(() => applyLayout(ogma, LayoutType.Force, defaultForceOptions))
+			//.then(() => applyLayout(ogma, LayoutType.Hierarchical, {
+			//	duration: 300,
+			//	roots: [startNodes],
+			//	sinks: [endNodes]
+			//}))
 			
 		return {
 			destroy() {
@@ -398,12 +395,11 @@
 		}
 	}
 
-	// Add the function that will call applyLayout with the Sami layout
+	// Function that will call applyLayout with the Sami layout
 	const applySamiLayout = () => {
 		//const graph = rawGraph;
 		applyLayout(ogma, LayoutType.Sami, {
-		graph: rawGraph,
-		//graph:
+		//graph: rawGraph,
 		entryNodes: startNodes,
 		exitNodes: endNodes
 		});

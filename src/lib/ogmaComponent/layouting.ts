@@ -35,15 +35,8 @@ export const defaultForceLinkOptions: ForceLinkOptions = {
 
 export const defaultHierarchicalOptions: HierarchicalLayoutOptions = {
   locate: true
-  //roots: currentStartNodes,
-  //sinks: currentEndNodes
 }
 
-type SamiLayoutOptions = {
-  graph: any;
-  entryNodes: string[];
-  exitNodes: string[];
-};
 
 export const LayoutType = { 
   Force: 'force', 
@@ -57,7 +50,7 @@ type ValLayoutType = (typeof LayoutType)[keyof typeof LayoutType]
 export const applyLayout = (
   ogma: Ogma,
   layout: ValLayoutType,
-  options: (ForceLayoutOptions | ForceLinkOptions | HierarchicalLayoutOptions | SamiLayoutOptions) = {}
+  options: (ForceLayoutOptions | ForceLinkOptions | HierarchicalLayoutOptions ) = {}
 ) => {
   const layouts = [
     {
@@ -76,16 +69,17 @@ export const applyLayout = (
       type: LayoutType.Sami,
       layoutFunction: () => {
         samiLayout(
-          options.graph, 
+          //options.graph, 
           options.entryNodes, 
-          options.exitNodes, 
+          options.exitNodes,
           ogma
         );
       return Promise.resolve();
       }
-    },
+    }
   ];
 
+  
   const layoutObj = layouts.find((l) => l.type === layout);
 
   if (!layoutObj || !layoutObj.layoutFunction) {
@@ -153,7 +147,7 @@ const predecessors = (G: any, nodeId: string) => {
 
 
 // The assignLevels function
-function assignLevels(G, entryNodes, exitNodes) {
+function assignLevels0(G, entryNodes, exitNodes) {
   const levels = {};
   let level = 0;
   let queue = [...entryNodes];
@@ -166,6 +160,7 @@ function assignLevels(G, entryNodes, exitNodes) {
               levels[node] = level;
 
               for (const successor of successors(G, node)) {
+              //for (const successor of predecessors(G, node)) {
                   if (!(successor in levels) && !exitNodes.includes(successor)) {
                       nextQueue.push(successor);
                   }
@@ -186,6 +181,136 @@ function assignLevels(G, entryNodes, exitNodes) {
 }
 
 
+function assignLevels(G, entryNodes, exitNodes) {
+  const levels = {}; // This will store the levels of nodes
+  let level = 0;
+  let queue = [...entryNodes];
+
+  const nodes = getNodes(G);
+  
+  // Identify disconnected nodes
+  const disconnectedNodes = nodes.filter((nodeId: string) => {
+    const hasNoPredecessors = predecessors(G, nodeId).length === 0;
+    const hasNoSuccessors = successors(G, nodeId).length === 0;  
+    return hasNoPredecessors && hasNoSuccessors;
+  });
+
+  // Determine whether to use successors or predecessors based on entryNodes[0]
+  const useSuccessors = successors(G, entryNodes[0]).length > 0;
+
+  // BFS to assign levels from entry nodes
+  while (queue.length > 0) {
+      const nextQueue = [];
+      for (const node of queue) {
+          if (!(node in levels)) {
+            levels[node] = level; // Assign current level to the node
+
+            // Choose successor or predecessor based on `useSuccessors`
+            let connectedNodes = useSuccessors
+              ? successors(G, node)       // Use successors if available
+              : predecessors(G, node);    // Otherwise, use predecessors
+
+            // Traverse the connected nodes
+            for (const connectedNode of connectedNodes) {
+              if (!(connectedNode in levels) && !exitNodes.includes(connectedNode)) {
+                nextQueue.push(connectedNode);
+              }
+            }
+          }
+      }
+      queue = nextQueue;
+      level += 1;
+  }
+
+  let maxLevel = Math.max(...Object.values(levels)); // Get the max level from assigned nodes
+  console.log('maxLevel', maxLevel)
+
+  // Assign levels to unreachable nodes (from disconnected components)
+  //let nextAvailableLevel = finalLevel + 1; // Start after the last level used
+  let nextAvailableLevel = maxLevel + 1; // Start after the last level used
+  console.log('nextAvailableLevel', nextAvailableLevel)
+
+  // Assigning exit nodes to the O level just to mark them as visited => for unreachable nodes 
+  for (const exitNode of exitNodes) {
+    levels[exitNode] = 0;
+  }
+  // Same for disconnected node, which will be placed later on
+  for (const disconnectedNode of disconnectedNodes) {
+    levels[disconnectedNode] = 0;
+  }
+
+  const visited = new Set(Object.keys(levels)); // Track nodes already visited
+
+  // Iterate over all nodes in the graph to handle unreachable (disconnected) nodes
+  for (const node of G.nodes) {
+    if (!visited.has(node.id)) {  // If the node is not visited, it's unreachable
+      console.log(node.id)
+      // Assign this unreachable node to the next available level
+      levels[node.id] = nextAvailableLevel;
+      visited.add(node.id);  // Mark it as visited
+      console.log(`Assigned level ${nextAvailableLevel} to unreachable node ${node.id}`);
+        
+      // Since only one node is unreachable in your case, no need for BFS, just move on to the next level
+      nextAvailableLevel += 1;  // Now increment the level for potential future unreachable nodes
+    }
+  }
+
+  // Assigning exit nodes to a last distinct level
+  maxLevel = Math.max(...Object.values(levels)); // Get the max level from assigned nodes
+  console.log('maxLevel', maxLevel)
+  const finalLevel = maxLevel + 1; // Assign exit nodes to one level higher
+  for (const exitNode of exitNodes) {
+      levels[exitNode] = finalLevel;
+  }
+
+  return levels;
+}
+
+
+
+
+// The assignLevels function for DG and Transaction, NOT taking care of unreachable nodes
+function assignLevels2(G, entryNodes, exitNodes) {
+  const levels = {};
+  let level = 0;
+  let queue = [...entryNodes];
+
+  // Determine whether to use successors or predecessors based on entryNodes[0]
+  const useSuccessors = successors(G, entryNodes[0]).length > 0;
+
+  // BFS to assign levels
+  while (queue.length > 0) {
+    const nextQueue = [];
+    for (const node of queue) {
+      if (!(node in levels)) {
+        levels[node] = level;
+
+        // Choose successor or predecessor based on `useSuccessors`
+        let connectedNodes = useSuccessors
+          ? successors(G, node)       // Use successors if available
+          : predecessors(G, node);    // Otherwise, use predecessors
+
+        // Traverse the connected nodes
+        for (const connectedNode of connectedNodes) {
+          if (!(connectedNode in levels) && !exitNodes.includes(connectedNode)) {
+            nextQueue.push(connectedNode);
+          }
+        }
+      }
+    }
+    queue = nextQueue;
+    level += 1;
+  }
+
+  // Assign exit nodes to a distinct final level
+  const finalLevel = Math.max(...Object.values(levels)) + 1;
+  for (const exitNode of exitNodes) {
+    levels[exitNode] = finalLevel;
+  }
+
+  return levels;
+}
+
 // Function to calculate the barycenter heuristic
 function barycenterHeuristic(G, levels, pos, maxWidth = 1) {
   const maxLevel = Math.max(...Object.values(levels));
@@ -198,7 +323,18 @@ function barycenterHeuristic(G, levels, pos, maxWidth = 1) {
       // Compute barycenter for each node in the current level based on connections to previous levels
       const barycenter = {};
       for (const node of nodesInLevel) {
-          const prevLevelNodes = predecessors(G, node).filter(n => levels[n] < level);
+          //const prevLevelNodes = predecessors(G, node).filter(n => levels[n] < level);
+          //const prevLevelNodes = successors(G, node).filter(n => levels[n] < level);
+
+          const prevLevelNodes = getEdges(G)
+          .filter((edge: [string, string]) => edge[0] === node || edge[1] === node) // Find edges connected to the node
+          .map((edge: [string, string]) => {
+            // Extract the connected nodes
+            return edge[0] === node ? edge[1] : edge[0];
+          })
+          .filter((connectedNode: string) => levels[connectedNode] < level);
+
+
 
           if (prevLevelNodes.length > 0) {
               const avgX = prevLevelNodes.reduce((sum, p) => sum + pos[p][0], 0) / prevLevelNodes.length;
@@ -435,14 +571,14 @@ function resolveOverlappingEdges(G, pos, levels) {
     const edgesArray = [];
     for (const edgeId in overlappingEdges) {
       //console.log('Type of edgeId:', typeof edgeId);
-      
       // Cast edgeId to a number to match the type of the edge id in G.edges
-      const numericEdgeId = Number(edgeId);
+      //const numericEdgeId = Number(edgeId);
       //console.log('Numeric edgeId:', numericEdgeId, 'Type:', typeof numericEdgeId);
   
       // Find the edge object in the graph `G` using the numeric edgeId
-      const edge = G.edges.find(e => e.id === numericEdgeId);
-      //console.log("\nedge:", edge);
+      //const edge = G.edges.find(e => e.id === numericEdgeId);
+      const edge = G.edges.find(e => e.id === edgeId);
+      console.log("\nedge:", edge);
   
       // Add source and target nodes of the edge to involvedNodes
       involvedNodes.add(edge.source);
@@ -486,6 +622,50 @@ function resolveOverlappingEdges(G, pos, levels) {
   return pos;
 }
 
+function placeDisconnectedNodes(G: any, positions: { [key: string]: [number, number] }) {
+  const nodes = getNodes(G);
+  
+  // Identify disconnected nodes
+  const disconnectedNodes = nodes.filter((nodeId: string) => {
+    const hasNoPredecessors = predecessors(G, nodeId).length === 0;
+    const hasNoSuccessors = successors(G, nodeId).length === 0;  
+    return hasNoPredecessors && hasNoSuccessors;
+  });
+  
+  console.log('Disconnected nodes:', disconnectedNodes);  // Log disconnected nodes
+  
+  // Calculate the number of rows and columns for the grid layout
+  const numNodes = disconnectedNodes.length;
+  const columns = Math.ceil(Math.sqrt(numNodes));  // Number of columns based on the square root
+  const rows = Math.ceil(numNodes / columns);       // Number of rows needed to fit all nodes
+    
+  // Define the starting position and spacing for the grid layout
+  const offsetX = 0;  // Starting X position
+  let offsetY = 1;    // Starting Y position
+  const horizontalSpacing = 0.1; // Horizontal space between nodes
+  const verticalSpacing = 0.1;   // Vertical space between nodes
+
+  disconnectedNodes.forEach((nodeId, index) => {
+    // Calculate the column and row based on the node index
+    const row = Math.floor(index / columns);      // Row is based on the node index
+    const col = index % columns;                 // Column is the remainder of the division
+    
+    // Calculate the X and Y positions for the node in the grid
+    const x = offsetX + col * horizontalSpacing;
+    const y = offsetY + row * verticalSpacing;
+
+    // Assign the calculated position to the node
+    positions[nodeId] = [x, y];
+    console.log(`Placing node ${nodeId} at position: [${x}, ${y}]`);
+  });
+
+  return positions;
+}
+
+
+
+
+
 // Custom layout function for directed graphs.
 function customLayoutDirected(G, entryNodes, exitNodes, maxWidth = 1) {
   /**
@@ -499,6 +679,7 @@ function customLayoutDirected(G, entryNodes, exitNodes, maxWidth = 1) {
 
   let pos = {};
   const levels = assignLevels(G, entryNodes, exitNodes);
+  console.log(levels)
 
   console.log("G:", G);
   console.log("entryNodes:", entryNodes);
@@ -553,12 +734,13 @@ function customLayoutDirected(G, entryNodes, exitNodes, maxWidth = 1) {
   // Resolve overlapping edges
   pos = resolveOverlappingEdges(G, pos, levels);
 
+  pos = placeDisconnectedNodes(G, pos);
+
   return pos;
 }
 
-// Get positions based on calculated levels
-//const positions = customLayoutDirected(G, entryNodes, exitNodes);
-//console.log(positions);
+
+
 
 /*
 
@@ -587,7 +769,7 @@ const positions = {
 */
 
 // Place nodes according to ogma 
-function samiLayout(G: any, entryNodes: string[], exitNodes: string[], ogma:Ogma) {
+function samiLayout0(G: any, entryNodes: string[], exitNodes: string[], ogma:Ogma) {
     //CREER G ICI
     //ogma.getNodes().map(node => node.id)
     //ogma.getEdges().map(edge =>{})
@@ -614,4 +796,47 @@ function samiLayout(G: any, entryNodes: string[], exitNodes: string[], ogma:Ogma
       
       console.log('Graph displayed with Sami Layout positions.');
     });
+}
+
+function samiLayout(entryNodes, exitNodes, ogma) {
+  // Retrieve all visible nodes and edges
+  const visibleNodes = ogma.getNodes("visible").map(node => ({ id: String(node.getId()) }));
+  const visibleEdges = ogma.getEdges("visible").map(edge => ({
+    id: String(edge.getId()),
+    source: String(edge.getSource().getId()),
+    target: String(edge.getTarget().getId())
+  }));
+
+  //const visibleNodes = ogma.getNodes("visible").map(node => ({ id: node.getId() }));
+  //const visibleEdges = ogma.getEdges("visible").map(edge => ({
+  //  id: edge.getId(),
+  //  source: edge.getSource().getId(),
+  //  target: edge.getTarget().getId()
+  //}));
+
+  // Build G
+  const G = {
+    nodes: visibleNodes,
+    edges: visibleEdges
+  };
+
+  // Compute positions using custom layout
+  const positions = customLayoutDirected(G, entryNodes, exitNodes);
+
+  // Load the graph without positions
+  ogma.setGraph(G).then(() => {
+    // Apply positions to nodes in the graph
+    Object.keys(positions).forEach(nodeId => {
+      const pos = positions[nodeId];
+      ogma.getNode(nodeId).setAttributes({
+        x: pos[0] * -500,
+        y: pos[1] * -500
+      });
+    });
+
+    // Center the view on the graph
+    ogma.view.locateGraph();
+    
+    console.log('Graph displayed with Sami Layout positions.');
+  });
 }
