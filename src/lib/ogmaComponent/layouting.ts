@@ -55,19 +55,19 @@ export const applyLayout = (
   const layouts = [
     {
       type: LayoutType.Force,
-      layoutFunction: (options: ForceLayoutOptions) => ogma.layouts.force(options ? options : defaultForceOptions),
+      layoutFunction: (options: ForceLayoutOptions): Promise<unknown> => ogma.layouts.force(options ? options : defaultForceOptions) as Promise<unknown>,
     },
     {
       type: LayoutType.ForceLink,
-      layoutFunction: (options: ForceLinkOptions) => ogma.layouts.forceLink(options ? options : defaultForceLinkOptions),
+      layoutFunction: (options: ForceLinkOptions): Promise<unknown> => ogma.layouts.forceLink(options ? options : defaultForceLinkOptions),
     },
     {
       type: LayoutType.Hierarchical,
-      layoutFunction: (options: HierarchicalLayoutOptions) => ogma.layouts.hierarchical(options ? options : defaultHierarchicalOptions),
+      layoutFunction: (options: HierarchicalLayoutOptions): Promise<unknown> => ogma.layouts.hierarchical(options ? options : defaultHierarchicalOptions),
     },
     {
       type: LayoutType.Sami,
-      layoutFunction: (options: { entryNodes: [], exitNodes: [] }) => samiLayout(options.entryNodes, options.exitNodes, ogma)
+      layoutFunction: (options: { entryNodes: [], exitNodes: [] }): Promise<unknown> => samiLayout(options.entryNodes, options.exitNodes, ogma)
     }
   ]
 
@@ -92,34 +92,40 @@ export const applyLayout = (
 }
 
 
-const samiLayout = (entryNodes: string[], exitNodes: string[], ogma: Ogma): Promise<void> => {
-  // Retrieve all visible nodes and edges
-  const visibleNodes = ogma.getNodes("visible").map(node => ({ id: String(node.getId()) }))
-  const visibleEdges = ogma.getEdges("visible").map(edge => ({
-    id: String(edge.getId()),
-    source: String(edge.getSource().getId()),
-    target: String(edge.getTarget().getId())
-  }))
+const samiLayout = (entryNodes: string[], exitNodes: string[], ogma: Ogma): Promise<unknown> => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Retrieve all visible nodes and edges
+      const visibleNodes = ogma.getNodes("visible").map(node => ({ id: String(node.getId()) }))
+      const visibleEdges = ogma.getEdges("visible").map(edge => ({
+        id: String(edge.getId()),
+        source: String(edge.getSource().getId()),
+        target: String(edge.getTarget().getId())
+      }))
 
-  const G = {
-    nodes: visibleNodes,
-    edges: visibleEdges
-  }
+      const G = {
+        nodes: visibleNodes,
+        edges: visibleEdges
+      }
 
-  // Compute positions using custom layout and Apply positions to nodes in the graph
-  const positions = customLayoutDirected(G, entryNodes, exitNodes)
-  Object.keys(positions).forEach(nodeId => {
-    const pos = positions[nodeId]
-    ogma.getNode(nodeId).setAttributes({
-      x: pos[0] * -500,
-      y: pos[1] * -500
-    })
-  })
+      // Compute positions using custom layout and Apply positions to nodes in the graph
+      const positions = customLayoutDirected(G, entryNodes, exitNodes)
+      Object.keys(positions).forEach(nodeId => {
+        const pos = positions[nodeId]
+        ogma.getNode(nodeId).setAttributes({
+          x: pos[0] * -500,
+          y: pos[1] * -500
+        })
+      })
 
-  // Center the view on the graph
-  ogma.view.locateGraph().then(() => {
-    console.log('Graph displayed with Sami Layout positions.')
-    return { type: 'layout', name: 'sami' }
+      // Center the view on the graph
+      ogma.view.locateGraph().then(() => {
+        console.log('Graph displayed with Sami Layout positions.')
+        resolve({ type: 'layout', name: 'sami' })
+      })
+    } catch (error) {
+      reject(error)
+    }
   })
 }
 
