@@ -50,7 +50,7 @@
 		const nodeId = node.getAttribute('id')
 		let communityGrouping: Transformation<any, any>
 
-		if (nodeId === null) return // check to prevent TypeScript throwing an error on container: node.getAttribute('id')
+		if (nodeId === null) return
 		ogma = new Ogma({
 			container: nodeId
 		})
@@ -386,6 +386,7 @@
 			<button on:click={() => applyLayout(ogma, LayoutType.ForceLink)}>ForceLink layout</button>
 			<button on:click={() => applyLayout(ogma, LayoutType.Hierarchical)}>Hierarchical layout</button>
 			<button on:click={() => applyLayout(ogma, LayoutType.Sami, { entryNodes: startNodes, exitNodes: endNodes })}>Sami custom layout</button>
+			<button on:click={() => applyLayout(ogma, LayoutType.SamiNoR, { entryNodes: startNodes, exitNodes: endNodes })}>Sami custom layout (no radius)</button>
 			<Selector selected={algo} elementType="algo" elements={algos} on:newValueSelectedInCombo={onChangeAlgo} />
 			<div class="custom-checkbox">
 				<input type="checkbox" name="content-visible" id="content-visible" bind:checked={isContentVisible} on:change={() => toggleContentVisible()} />

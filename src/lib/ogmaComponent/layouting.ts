@@ -42,7 +42,8 @@ export const LayoutType = {
   Force: 'force',
   ForceLink: 'forceLink',
   Hierarchical: 'hierarchical',
-  Sami: 'sami'
+  Sami: 'sami',
+  SamiNoR: 'samiNoR'
 } as const
 type ValLayoutType = (typeof LayoutType)[keyof typeof LayoutType]
 
@@ -68,6 +69,10 @@ export const applyLayout = (
     {
       type: LayoutType.Sami,
       layoutFunction: (options: { entryNodes: [], exitNodes: [] }): Promise<unknown> => samiLayout(options.entryNodes, options.exitNodes, ogma)
+    },
+    {
+      type: LayoutType.SamiNoR,
+      layoutFunction: (options: { entryNodes: [], exitNodes: [] }): Promise<unknown> => samiLayoutNoR(options.entryNodes, options.exitNodes, ogma)
     }
   ]
 
@@ -92,7 +97,105 @@ export const applyLayout = (
 }
 
 
-const samiLayout = (entryNodes: string[], exitNodes: string[], ogma: Ogma): Promise<unknown> => {
+const samiLayoutNoR = (entryNodes: string[], exitNodes: string[], ogma: Ogma): Promise<unknown> => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Retrieve all visible nodes and edges
+      const visibleNodes = ogma.getNodes("visible").map(node => ({ 
+        id: String(node.getId()),
+        radius: node.getAttribute('radius')
+       }));
+      const visibleEdges = ogma.getEdges("visible").map(edge => ({
+        id: String(edge.getId()),
+        source: String(edge.getSource().getId()),
+        target: String(edge.getTarget().getId())
+      }));
+
+      const G = {
+        nodes: visibleNodes,
+        edges: visibleEdges
+      }
+
+      // Compute positions using custom layout and Apply positions to nodes in the graph
+      const positions = customLayoutDirected(G, entryNodes, exitNodes)
+      Object.keys(positions).forEach(nodeId => {
+        const pos = positions[nodeId]
+        ogma.getNode(nodeId).setAttributes({
+          x: pos[0] * -500,
+          y: pos[1] * -500,
+          radius: 3
+        })
+      })
+
+      // Center the view on the graph
+      ogma.view.locateGraph().then(() => {
+        console.log('Graph displayed with Sami Layout positions.')
+        resolve({ type: 'layout', name: 'sami' })
+      })
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
+const samiLayout = (entryNodes, exitNodes, ogma) => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Retrieve all visible nodes and edges
+      const visibleNodes = ogma.getNodes("visible").map(node => ({ 
+        id: String(node.getId()),
+        radius: node.getAttribute('radius')
+       }));
+      const visibleEdges = ogma.getEdges("visible").map(edge => ({
+        id: String(edge.getId()),
+        source: String(edge.getSource().getId()),
+        target: String(edge.getTarget().getId())
+      }));
+
+      const G = {
+        nodes: visibleNodes,
+        edges: visibleEdges
+      };
+
+      // Determine the biggest node size
+      let maxNodeSize = 0;
+      visibleNodes.forEach(node => {
+        const size = node.radius;
+        if (size > maxNodeSize) {
+          maxNodeSize = size;
+        }
+      });
+
+      console.log("Max node size:", maxNodeSize);
+
+      // To avoid node overlap
+      const spacing = maxNodeSize * 30;
+      console.log("spacing:", spacing);
+
+
+      // Compute positions using custom layout and Apply positions to nodes in the graph
+      const positions = customLayoutDirected(G, entryNodes, exitNodes);
+      Object.keys(positions).forEach(nodeId => {
+        const pos = positions[nodeId];
+        ogma.getNode(nodeId).setAttributes({
+          x: pos[0] * -(500 + spacing),
+          y: pos[1] * -(500 + spacing)
+        });
+      });
+
+      // Center the view on the graph
+      ogma.view.locateGraph().then(() => {
+        console.log('Graph displayed with Sami Layout positions.');
+        resolve({ type: 'layout', name: 'sami' });
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+
+const samiLayout0 = (entryNodes: string[], exitNodes: string[], ogma: Ogma): Promise<unknown> => {
   return new Promise((resolve, reject) => {
     try {
       // Retrieve all visible nodes and edges
@@ -180,6 +283,7 @@ function assignLevels0(G, entryNodes, exitNodes) {
   return levels
 }
 
+// The assignLevels function for DG and Transaction, taking care of unreachable nodes
 function assignLevels(G, entryNodes, exitNodes) {
   const levels = {} // This will store the levels of nodes
   let level = 0
@@ -225,8 +329,8 @@ function assignLevels(G, entryNodes, exitNodes) {
   console.log('maxLevel', maxLevel)
 
   // Assign levels to unreachable nodes (from disconnected components)
-  //let nextAvailableLevel = finalLevel + 1; // Start after the last level used
-  let nextAvailableLevel = maxLevel + 1 // Start after the last level used
+  //let nextAvailableLevel = finalLevel + 1; 
+  let nextAvailableLevel = maxLevel + 1 
   console.log('nextAvailableLevel', nextAvailableLevel)
 
   // Assigning exit nodes to the O level just to mark them as visited => for unreachable nodes 
@@ -249,15 +353,14 @@ function assignLevels(G, entryNodes, exitNodes) {
       visited.add(node.id)  // Mark it as visited
       console.log(`Assigned level ${nextAvailableLevel} to unreachable node ${node.id}`)
 
-      // Since only one node is unreachable in your case, no need for BFS, just move on to the next level
-      nextAvailableLevel += 1  // Now increment the level for potential future unreachable nodes
+      nextAvailableLevel += 1  // For potential future unreachable nodes
     }
   }
 
   // Assigning exit nodes to a last distinct level
   maxLevel = Math.max(...Object.values(levels)) // Get the max level from assigned nodes
   console.log('maxLevel', maxLevel)
-  const finalLevel = maxLevel + 1 // Assign exit nodes to one level higher
+  const finalLevel = maxLevel + 1
   for (const exitNode of exitNodes) {
     levels[exitNode] = finalLevel
   }
@@ -457,7 +560,7 @@ function doIntersect(p1, q1, p2, q2) {
   const o3 = orientation(p2, q2, p1)
   const o4 = orientation(p2, q2, q1)
 
-  // Debugging: Show orientations
+  // Show orientations
   /*console.log(`Checking intersection between edge (${p1}, ${q1}) and edge (${p2}, ${q2})`);
   console.log(`Orientation of points (${p1}, ${q1}, ${p2}): ${o1}`);
   console.log(`Orientation of points (${p1}, ${q1}, ${q2}): ${o2}`);
@@ -543,15 +646,15 @@ function chooseBestShiftDirection(G, pos: Positions, nodeToMove, shiftAmount) {
 }
 
 // Resolve visually overlapping edges by selectively shifting nodes.
-function resolveOverlappingEdges(G, pos: Positions, levels) {
-  // Calculate the height between levels
+function resolveOverlappingEdges0(G, pos: Positions, levels) {
+  // Height between levels
   const levelHeights = calculateLevelHeights(levels)
 
   while (true) {
-    // Step 1: Find overlapping edges using the provided function
+    // Find overlapping edges using the provided function
     const overlappingEdges = findVisuallyOverlappingEdges(G, pos)
 
-    // Step 2: Break if no overlapping edges are found
+    // Break if no overlapping edges are found
     if (Object.keys(overlappingEdges).length === 0) {
       console.log("No overlapping edges detected.")
       break
@@ -560,7 +663,7 @@ function resolveOverlappingEdges(G, pos: Positions, levels) {
     console.log("\nDetected overlapping edges:", overlappingEdges)
 
 
-    // Step 3: Collect all involved nodes and determine which to move
+    // Collect all involved nodes and determine which to move
     const involvedNodes = new Set()
     const edgesArray = []
     for (const edgeId in overlappingEdges) {
@@ -597,7 +700,7 @@ function resolveOverlappingEdges(G, pos: Positions, levels) {
       break
     }
 
-    // Step 4: Move the selected node
+    // Move the selected node
     const currentY = pos[nodeToMove][1]
     console.log(`\nMoving node '${nodeToMove}' from position ${pos[nodeToMove]}`)
 
@@ -616,6 +719,86 @@ function resolveOverlappingEdges(G, pos: Positions, levels) {
   return pos
 }
 
+
+// Resolve visually overlapping edges by selectively shifting nodes.
+function resolveOverlappingEdges(G, pos, levels) {
+  // Height between levels
+  const levelHeights = calculateLevelHeights(levels);
+
+  const movedNodes = new Set(); // Track nodes that have been moved
+
+  while (true) {
+    // Find overlapping edges using the provided function
+    const overlappingEdges = findVisuallyOverlappingEdges(G, pos);
+
+    // Break if no overlapping edges are found
+    if (Object.keys(overlappingEdges).length === 0) {
+      console.log("No overlapping edges detected.");
+      break;
+    }
+
+    console.log("\nDetected overlapping edges:", overlappingEdges);
+
+    // Collect all involved nodes and determine which to move
+    const involvedNodes = new Set();
+    const edgesArray = [];
+
+    for (const edgeId in overlappingEdges) {
+      const edge = G.edges.find(e => e.id === edgeId);
+      console.log("\nedge:", edge);
+
+      // Add source and target nodes of the edge to involvedNodes
+      involvedNodes.add(edge.source);
+      involvedNodes.add(edge.target);
+
+      // Add the edge to edgesArray in the desired format
+      edgesArray.push({ source: edge.source, target: edge.target });
+    }
+
+    // Exclude nodes that have already been moved
+    const availableNodes = [...involvedNodes].filter(node => !movedNodes.has(node));
+
+    if (availableNodes.length === 0) {
+      console.log("All involved nodes have been moved. Breaking loop.");
+      break;
+    }
+
+    // Determine the node with the highest degree among available nodes
+    const degreeCount = getEdgeDegreeCount(G, edgesArray);
+    console.log("\nDegree Count:", degreeCount);
+
+    const nodeToMove = availableNodes.reduce((a, b) => 
+        (degreeCount[a] || 0) > (degreeCount[b] || 0) ? a : b
+    );
+
+    if (!nodeToMove) {
+      console.log("No node to move found.");
+      break;
+    }
+
+    // Move the selected node
+    const currentY = pos[nodeToMove][1];
+    console.log(`\nMoving node '${nodeToMove}' from position ${pos[nodeToMove]}`);
+
+    // Determine the appropriate shift amount
+    const level = levels[nodeToMove];
+    const shiftAmount = (level < levelHeights.length - 1) 
+        ? (levelHeights[level + 1] - levelHeights[level]) / 2 
+        : 0.1;
+
+    // Choose the best direction (up or down) to minimize edge crossings
+    const newY = chooseBestShiftDirection(G, pos, nodeToMove, shiftAmount);
+    pos[nodeToMove] = [pos[nodeToMove][0], newY];
+    console.log(`Moved '${nodeToMove}' to new position ${pos[nodeToMove]}`);
+
+    // Add the node to the movedNodes set
+    movedNodes.add(nodeToMove);
+  }
+
+  return pos;
+}
+
+
 function placeDisconnectedNodes(G: any, positions: Positions): Positions {
   const nodes = getNodes(G)
 
@@ -626,8 +809,8 @@ function placeDisconnectedNodes(G: any, positions: Positions): Positions {
     return hasNoPredecessors && hasNoSuccessors
   })
 
-  console.log('Disconnected nodes:', disconnectedNodes)  // Log disconnected nodes
-
+  console.log('Disconnected nodes:', disconnectedNodes)
+  
   // Calculate the number of rows and columns for the grid layout
   const numNodes = disconnectedNodes.length
   const columns = Math.ceil(Math.sqrt(numNodes))  // Number of columns based on the square root
