@@ -1,20 +1,20 @@
 <script lang="ts">
 	import Ogma, { Transformation } from '@linkurious/ogma'
-	import type { RawGraph, Node, NodeList, Edge } from '@linkurious/ogma'
+	import type { RawGraph, Node, NodeList, Edge, NodeId, Color } from '@linkurious/ogma'
 	import { LayoutType, applyLayout, defaultForceOptions, defaultLocateOptions } from './layouting'
 	import Selector, { type selectElement } from '$lib/selector.svelte'
 	import AlgoLaunchPad from '$lib/algoLaunchPad.svelte'
-	import MetricsPanel from '$lib/metricsPanel.svelte'
+	import MetricsModal from '$lib/MetricsModal.svelte'
+	import NodeDetailsPanel from '$lib/NodeDetailsPanel.svelte'
 	import type { LinkTypes } from '$lib/customTypes'
-	import { getContext } from 'svelte'
+	import { page } from '$app/stores'
+	import { getContext, onMount } from 'svelte'
 	//import { startNodesStore, endNodesStore } from '$lib/generalStore'
+	import LoggerPanel from '$lib/LoggerPanel.svelte'
 
 	// Props
 	export let rawGraph: RawGraph
 	export let hoveredIds: string[]
-
-	//export let startNodes: string[] = [];
-	//export let endNodes: string[] = [];
 
 	// Internals - Global
 	let ogma: Ogma
@@ -24,9 +24,82 @@
 	let level = 1
 	let currentZoomLevel: number = 100
 
-	const graphType = getContext('graphType')
-	const graphId = getContext('graphId')
+	let metricsModalOpen = false
+	let selectedGroupNodes: NodeList | null = null
+	let selectedGroupingNode: Node | null = null;
 
+	let nodeDetailsPanelOpen = false
+	let selectedNode: Node | null = null
+
+	// For start and end nodes
+	let startNodes: string[] = [];
+	let endNodes: string[] = [];
+	let nodesOfInterestLoaded = false;
+	let isLoadingNodesOfInterest = false;
+
+	let loggerPanelOpen = false
+
+	// Get parameters directly from the page store
+	const graphType = getContext('graphType') //|| 'Transaction'
+	const graphId = getContext('graphId') //|| $page.params.transactionId || $page.params.datagraphId
+	// Get appName from page params, which we know is available
+	const appName = $page.params.appName
+
+	// Log all values for debugging
+	console.log('Page params:', $page.params)
+	console.log('Using values:', { appName, graphType, graphId })
+
+	// For manual grouping 
+	let groupCount = 1
+	const groups = new Map<NodeId, string>()
+	const colors = new Map<NodeId, string>()
+	const fixedColor = 'green'
+
+	// Function to fetch nodes of interest from the server
+	async function fetchNodesOfInterest() {
+		if (isLoadingNodesOfInterest) return;
+		
+		isLoadingNodesOfInterest = true;
+		try {
+			// Ensure consistent pluralization for all graph types
+			// Extract the base graph type (removing 's' if it already exists)
+			const baseGraphType = graphType.endsWith('s') 
+			? graphType.slice(0, -1) 
+			: graphType;
+			
+			// Always add 's' to ensure plural form
+			const graphTypeEndpoint = baseGraphType + 's';
+			
+			console.log(`Fetching nodes of interest for ${appName}/${graphTypeEndpoint}/${graphId}`);
+			
+			// Use the correct endpoint path that matches your server route
+			const response = await fetch(`/API/nodesOfInterest/${appName}/${baseGraphType}/${graphId}`);
+			if (!response.ok) {
+			throw new Error(`Error fetching nodes of interest: ${response.statusText}`);
+			}
+			
+			const data = await response.json();
+			startNodes = data.startNodes;
+			endNodes = data.endNodes;
+			
+			console.log('Fetched start nodes:', startNodes);
+			console.log('Fetched end nodes:', endNodes);
+			
+			nodesOfInterestLoaded = true;
+			
+		} catch (error) {
+			console.error('Failed to fetch nodes of interest:', error);
+			// Fall back to the computed approach if the API fails
+			const { startNodes: computed_startNodes, endNodes: computed_endNodes } = computeStartAndEndNodes(rawGraph);
+			startNodes = computed_startNodes;
+			endNodes = computed_endNodes;
+		} finally {
+			isLoadingNodesOfInterest = false;
+			nodesOfInterestLoaded = true;
+		}
+	}
+
+	// Keep the existing computeStartAndEndNodes function as a fallback
 	function computeStartAndEndNodes(graph: RawGraph): { startNodes: string[]; endNodes: string[] } {
 		const startNodes: string[] = []
 		const endNodes: string[] = []
@@ -41,14 +114,25 @@
 			if (node.data.properties?.EndingPoint === true) endNodes.push(String(node.id))
 		})
 
+		// Log found nodes
+		console.log('Start nodes from properties:', startNodes);
+		console.log('End nodes from properties:', endNodes);
+
 		return { startNodes, endNodes }
 	}
 
-	const { startNodes, endNodes } = computeStartAndEndNodes(rawGraph)
+	// Get initial values from properties (will be overridden by fetch if successful)
+	const initialNodeValues = computeStartAndEndNodes(rawGraph);
+	startNodes = initialNodeValues.startNodes;
+	endNodes = initialNodeValues.endNodes;
+
+	// Log loading transaction details for debugging
+	console.log(`Loading transaction: ${appName} ${graphId} ${graphType}`);
 
 	const setup = (node: HTMLDivElement, graph: RawGraph) => {
 		const nodeId = node.getAttribute('id')
 		let communityGrouping: Transformation<any, any>
+		let groupingInstance: Transformation<any, any>; 
 
 		if (nodeId === null) return
 		ogma = new Ogma({
@@ -56,9 +140,8 @@
 		})
 
 		console.log('Graph:', graph)
-
-		console.log('Start Nodes:', startNodes)
-		console.log('End Nodes:', endNodes)
+		console.log('Initial Start Nodes:', startNodes)
+		console.log('Initial End Nodes:', endNodes)
 
 		// Nodes style
 		ogma.styles.addNodeRule((node) => !node.isVirtual(), {
@@ -100,8 +183,10 @@
 			shape: {
 				body: () => 'line',
 				style: () => 'plain',
-				head: () => null,
-				tail: () => 'arrow'
+				//head: () => null,
+				//tail: () => 'arrow'
+				head: () => 'arrow',
+				tail: () => null
 			}
 		})
 
@@ -123,11 +208,29 @@
 				if (!target) {
 					const { target, x, y } = evt
 					if (hoveredIds) hoveredIds = []
+					// Close node details panel when clicking on empty space
+					nodeDetailsPanelOpen = false
+					selectedNode = null
 					return
 				}
+				// Right-click handler for group nodes
+				if (evt.button === 'right' && target && target.isVirtual()) {
+					// Get the nodes in this group
+					selectedGroupNodes = target.getSubNodes()
+					selectedGroupingNode = target
+					metricsModalOpen = true
+					
+					// Prevent default context menu
+					//evt.preventDefault()
+				}
+				// Handle regular click for showing node details
 				if (target.isNode) {
-					const node = target
-					console.log('Clicked on node:', node.getId(), node.getData())
+					selectedNode = target
+					// Only show details panel for non-virtual (actual) nodes
+					if (!target.isVirtual()) {
+						nodeDetailsPanelOpen = true
+					}
+					console.log('Clicked on node:', target.getId(), target.getData())
 					return
 				}
 			})
@@ -142,7 +245,38 @@
 			.on('zoomStart', (evt) => {
 				currentZoomLevel = evt.endZoom
 			})
+			.on('dragEnd', ({ target }) => {
+				if (!target || !target.isNode) return;
+				const parent = target.getMetaNode();
+				const { x, y } = (parent || target).getPositionOnScreen();
+				const r =
+					Number((parent || target).getAttribute('radius')) * ogma.view.getZoom();
 
+				const overlapNodes = ogma.getNodes().filter(node => {
+					const pos = node.getPositionOnScreen();
+					const dist =
+					Ogma.geometry.distance(x, y, pos.x, pos.y) -
+					+node.getAttribute('radius') * ogma.view.getZoom();
+					return dist < r;
+				});
+
+				if (overlapNodes.size < 2) return;
+
+				const groupid =
+					overlapNodes
+					.map(node => (node.isVirtual() ? node.getId() : groups.get(node.getId())))
+					.filter(e => e)[0] || `group-${groupCount++}`;
+				if (!colors.has(groupid)) {
+					colors.set(groupid, fixedColor);
+				}
+				overlapNodes.forEach(node => {
+					groups.set(node.getId(), groupid as string);
+				});
+				//grouping.refresh();
+				if (groupingInstance) {
+					groupingInstance.refresh();
+				}
+			})
 		ogma
 			.setGraph(graph)
 			.then(() => {
@@ -151,15 +285,16 @@
 			})
 			.then(() => {
 				communityGrouping = defineGrouping()
+				groupingInstance = grouping()
 				return communityGrouping.whenApplied()
 			})
 			// Layout when loading the page here
 			.then(() => applyLayout(ogma, LayoutType.Force, defaultForceOptions))
-		//.then(() => applyLayout(ogma, LayoutType.Hierarchical, {
-		//	duration: 300,
-		//	roots: [startNodes],
-		//	sinks: [endNodes]
-		//}))
+			// Fetch nodes of interest after initial layout
+			.then(() => {
+				// Fetch nodes of interest from the server
+				fetchNodesOfInterest();
+			});
 
 		return {
 			destroy() {
@@ -168,53 +303,105 @@
 		}
 	}
 
-	const defineGrouping = (): Transformation<any, any> => {
+	// Apply Sami layout with current start/end nodes
+	const applySamiLayout = () => {
+		console.log("Applying Sami layout with:", { startNodes, endNodes });
+		if (ogma) {
+			// If we don't have start/end nodes yet, try to fetch them first
+			if ((startNodes.length === 0 || endNodes.length === 0) && !isLoadingNodesOfInterest) {
+				fetchNodesOfInterest().then(() => {
+					applyLayout(ogma, LayoutType.Sami, { entryNodes: startNodes, exitNodes: endNodes });
+				});
+			} else {
+				applyLayout(ogma, LayoutType.Sami, { entryNodes: startNodes, exitNodes: endNodes });
+			}
+		}
+	}
+	
+	// Apply Sami layout without radius with current start/end nodes
+	const applySamiNoRLayout = () => {
+		console.log("Applying SamiNoR layout with:", { startNodes, endNodes });
+		if (ogma) {
+			// If we don't have start/end nodes yet, try to fetch them first
+			if ((startNodes.length === 0 || endNodes.length === 0) && !isLoadingNodesOfInterest) {
+				fetchNodesOfInterest().then(() => {
+					applyLayout(ogma, LayoutType.SamiNoR, { entryNodes: startNodes, exitNodes: endNodes });
+				});
+			} else {
+				applyLayout(ogma, LayoutType.SamiNoR, { entryNodes: startNodes, exitNodes: endNodes });
+			}
+		}
+	}
+
+	const grouping = (): Transformation<any, any> => {
 		return ogma.transformations.addNodeGrouping({
-			groupIdFunction: (node) => node.getData('groupId'),
-			nodeGenerator: (nodes, groupId) => {
-				return {
-					id: 'special group ' + groupId,
-					data: {
-						groupId: groupId,
-						subNodes: nodes,
-						level: nodes.get(0).getData('level')
-					},
-					attributes: {
-						color: 'white',
-						radius: isContentVisible
-							? undefined
-							: Math.min(
-									Math.max(
-										nodes.reduce((acc, node) => {
-											return acc + 1 //node.getAttribute('radius')
-										}, 0),
-										15
-									),
-									50
-								),
-						outerStroke: { color: 'blue', width: 1, minVisibleSize: 3 },
-						//text: groupId,
-						text: {
-							content: groupId,
-							position: 'center',
-							color: 'black',
-							maxLineLength: 140, // truncate
-							size: 12,
-							//backgroundColor: '#444',
-							minVisibleSize: 5
-						},
-						badges: {
-							bottomRight: {
-								color: 'white',
-								text: {
-									color: 'gray',
-									content: nodes.size
-								}
-							}
-						}
-					}
-				}
+			selector: node => groups.has(node.getId()),
+			groupIdFunction: node => groups.get(node.getId())!,
+			nodeGenerator: (nodes, id) => ({ id }),
+			showContents: true,
+			onGroupUpdate: (_, nodes) =>
+				ogma.layouts.force({
+				nodes,
+				edgeStrength: 2,
+				gravity: 0.1
+				})
+		})
+	}
+	
+	const groupingLevelColors = ['blue', 'green', 'orange', 'purple']
+
+	const defineGrouping = (): Transformation<any, any> => {
+	return ogma.transformations.addNodeGrouping({
+		groupIdFunction: (node) => node.getData('groupId'),
+		nodeGenerator: (nodes, groupId) => {
+		const level = nodes.get(0).getData('level') || 0
+		const levelColorIndex = Math.min(level - 1, groupingLevelColors.length - 1)
+		
+		return {
+			id: 'special group ' + groupId,
+			data: {
+			groupId: groupId,
+			subNodes: nodes,
+			level: level
 			},
+			attributes: {
+			color: 'white',
+			radius: isContentVisible
+				? undefined
+				: Math.min(
+					Math.max(
+					nodes.reduce((acc, node) => {
+						return acc + 1
+					}, 0),
+					15
+					),
+					50
+				),
+			outerStroke: { 
+				color: groupingLevelColors[levelColorIndex], 
+				width: 1, 
+				minVisibleSize: 3 
+			},
+			text: {
+				content: groupId,
+				position: 'center',
+				color: 'black',
+				maxLineLength: 140,
+				size: 12,
+				minVisibleSize: 5
+			},
+			badges: {
+				bottomRight: {
+				color: 'white',
+				text: {
+					color: 'gray',
+					content: nodes.size
+				}
+				}
+			}
+			}
+		}
+		},
 			separateEdgesByDirection: true,
 			edgeGenerator: (edgeList) => {
 				const combinedId = edgeList.getId().join('-')
@@ -376,6 +563,7 @@
 	}
 </script>
 
+
 <div class="ogma-graph">
 	{#await rawGraph}
 		<div>waiting for graph</div>
@@ -385,8 +573,8 @@
 			<button on:click={() => applyLayout(ogma, LayoutType.Force)}>Force layout</button>
 			<button on:click={() => applyLayout(ogma, LayoutType.ForceLink)}>ForceLink layout</button>
 			<button on:click={() => applyLayout(ogma, LayoutType.Hierarchical)}>Hierarchical layout</button>
-			<button on:click={() => applyLayout(ogma, LayoutType.Sami, { entryNodes: startNodes, exitNodes: endNodes })}>Sami custom layout</button>
-			<button on:click={() => applyLayout(ogma, LayoutType.SamiNoR, { entryNodes: startNodes, exitNodes: endNodes })}>Sami custom layout (no radius)</button>
+			<button on:click={applySamiLayout}>Sami custom layout</button>
+			<button on:click={applySamiNoRLayout}>Sami custom layout (no radius)</button>
 			<Selector selected={algo} elementType="algo" elements={algos} on:newValueSelectedInCombo={onChangeAlgo} />
 			<div class="custom-checkbox">
 				<input type="checkbox" name="content-visible" id="content-visible" bind:checked={isContentVisible} on:change={() => toggleContentVisible()} />
@@ -419,7 +607,32 @@
 	{/await}
 
 	<AlgoLaunchPad relationShipTypes={linkTypes} {algo} bind:isOpen={launchPadOpened} />
+
+	{#if metricsModalOpen && selectedGroupNodes}
+    <MetricsModal 
+        nodes={selectedGroupNodes}
+		metaNode={selectedGroupingNode}
+        isOpen={metricsModalOpen}
+        onClose={() => {
+            metricsModalOpen = false
+            selectedGroupNodes = null
+        }}
+    />
+{/if}
+	{#if nodeDetailsPanelOpen && selectedNode}
+	<NodeDetailsPanel 
+		node={selectedNode}
+		isOpen={nodeDetailsPanelOpen}
+		onClose={() => {
+			nodeDetailsPanelOpen = false
+			selectedNode = null
+		}}
+	/>
+	{/if}
 </div>
+
+<!-- Add the LoggerPanel component outside the ogma-graph div -->
+<LoggerPanel bind:isOpen={loggerPanelOpen} />
 
 <style>
 	.ogma-graph {
