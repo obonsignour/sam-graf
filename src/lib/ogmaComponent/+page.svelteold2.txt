@@ -50,40 +50,10 @@
 	const graphId = getContext('graphId') //|| $page.params.transactionId || $page.params.datagraphId
 	// Get appName from page params, which we know is available
 	const appName = $page.params.appName
-	
-	// Get the model name from page params for algorithm detection
-	const modelName = $page.params.modelName || '';
-	
-	// Flag to detect if we're viewing a Model page
-	const isModelPage = graphType === 'Model' || ($page.url?.pathname?.includes('/Models/'));
-	
-	// Helper function to detect which algorithm should be used based on model name
-	const detectAlgorithmFromModelName = (modelName: string): string => {
-		const name = modelName.toLowerCase();
-		
-		if (name.includes('slpa')) return 'SLPA';
-		if (name.includes('leiden')) return 'Leiden';
-		if (name.includes('undirectedlouvain')) return 'UndirectedLouvain';
-		if (name.includes('directedlouvain')) return 'DirectedLouvain';
-		if (name.includes('architectural')) {
-			if (name.includes('role')) return 'ArchitecturalRole';
-			if (name.includes('layer')) return 'ArchitecturalLayer';
-		}
-		
-		// Default to Leiden if no match
-		return 'Leiden';
-	};
-	
-	// Set initial algorithm based on model name if we're on a model page
-	if (isModelPage && modelName) {
-		algo = detectAlgorithmFromModelName(modelName);
-		console.log(`Auto-detected algorithm from model name: ${algo}`);
-	}
 
 	// Log all values for debugging
 	console.log('Page params:', $page.params)
-	console.log('Using values:', { appName, graphType, graphId, modelName, isModelPage })
-	console.log('Initial algorithm selected:', algo);
+	console.log('Using values:', { appName, graphType, graphId })
 
 	// For manual grouping 
 	let groupCount = 1
@@ -101,14 +71,6 @@
 		'Unknown': '#888888'         // Gray
 	}
 	
-	// Colors for SLPA overlapping communities
-	const overlapColors = {
-		'single': '#66c2a5',       // Single community (non-overlap)
-		'overlap2': '#fc8d62',     // 2 communities overlap
-		'overlap3': '#8da0cb',     // 3 communities overlap
-		'overlap4plus': '#e78ac3', // 4+ communities overlap
-	}
-	
 	// Function to check if an algorithm is hierarchical
 	const isHierarchicalAlgo = (algoName: string): boolean => {
 		return !['None', 'ArchitecturalRole', 'ArchitecturalLayer'].includes(algoName);
@@ -118,51 +80,50 @@
 	const isArchitecturalAlgo = (algoName: string): boolean => {
 		return algoName === 'ArchitecturalRole' || algoName === 'ArchitecturalLayer';
 	}
-	
-	// Function to check if algorithm is SLPA (overlapping communities)
-	const isSLPAAlgo = (algoName: string): boolean => {
-		return algoName === 'SLPA';
-	}
-	
-	// Helper function to detect if a string contains the SLPA format with $*$ delimiter
-	const isSLPAFormat = (str: string): boolean => {
-		return typeof str === 'string' && str.includes('$*$');
-	};
-	
-	// Parse SLPA community string format
-	const parseSLPACommunities = (communityString: string): string[] => {
-		if (!communityString) return [];
-		return communityString.split('$*$').filter(c => c);
-	};
 
-	// Check if a community ID represents an overlap
-	const isOverlappingCommunity = (communityId: string): boolean => {
-		return typeof communityId === 'string' && communityId.includes('&');
-	};
-
-	// Count how many communities are in an overlap
-	const countOverlappingCommunities = (communityId: string): number => {
-		if (!isOverlappingCommunity(communityId)) return 1;
-		return communityId.split('&').length;
-	};
-
-	// Get color based on community ID for SLPA
-	const getSLPAColor = (communityId: string): string => {
-		if (!isOverlappingCommunity(communityId)) {
-			return overlapColors.single;
-		}
+	// Function to fetch nodes of interest from the server
+	async function fetchNodesOfInterest() {
+		if (isLoadingNodesOfInterest) return;
 		
-		const overlapCount = countOverlappingCommunities(communityId);
-		if (overlapCount === 2) return overlapColors.overlap2;
-		if (overlapCount === 3) return overlapColors.overlap3;
-		return overlapColors.overlap4plus;
-	};
-
-	// Get formatted display name for a community ID
-	const getDisplayNameForCommunity = (communityId: string): string => {
-		if (!isOverlappingCommunity(communityId)) return communityId;
-		return communityId.replace(/&/g, ' & ');
-	};
+		isLoadingNodesOfInterest = true;
+		try {
+			// Ensure consistent pluralization for all graph types
+			// Extract the base graph type (removing 's' if it already exists)
+			const baseGraphType = graphType.endsWith('s') 
+			? graphType.slice(0, -1) 
+			: graphType;
+			
+			// Always add 's' to ensure plural form
+			const graphTypeEndpoint = baseGraphType + 's';
+			
+			console.log(`Fetching nodes of interest for ${appName}/${graphTypeEndpoint}/${graphId}`);
+			
+			// Use the correct endpoint path that matches your server route
+			const response = await fetch(`/API/nodesOfInterest/${appName}/${baseGraphType}/${graphId}`);
+			if (!response.ok) {
+			throw new Error(`Error fetching nodes of interest: ${response.statusText}`);
+			}
+			
+			const data = await response.json();
+			startNodes = data.startNodes;
+			endNodes = data.endNodes;
+			
+			console.log('Fetched start nodes:', startNodes);
+			console.log('Fetched end nodes:', endNodes);
+			
+			nodesOfInterestLoaded = true;
+			
+		} catch (error) {
+			console.error('Failed to fetch nodes of interest:', error);
+			// Fall back to the computed approach if the API fails
+			const { startNodes: computed_startNodes, endNodes: computed_endNodes } = computeStartAndEndNodes(rawGraph);
+			startNodes = computed_startNodes;
+			endNodes = computed_endNodes;
+		} finally {
+			isLoadingNodesOfInterest = false;
+			nodesOfInterestLoaded = true;
+		}
+	}
 
 	// Keep the existing computeStartAndEndNodes function as a fallback
 	function computeStartAndEndNodes(graph: RawGraph): { startNodes: string[]; endNodes: string[] } {
@@ -186,63 +147,10 @@
 		return { startNodes, endNodes }
 	}
 
-	// Get initial values from properties
+	// Get initial values from properties (will be overridden by fetch if successful)
 	const initialNodeValues = computeStartAndEndNodes(rawGraph);
 	startNodes = initialNodeValues.startNodes;
 	endNodes = initialNodeValues.endNodes;
-
-	// Function to fetch nodes of interest from the server
-	async function fetchNodesOfInterest() {
-		// Skip fetch for Model pages - this is the key change
-		if (isModelPage) {
-			console.log("Skipping nodes of interest fetch for Model page");
-			return;
-		}
-		
-		if (isLoadingNodesOfInterest) return;
-		
-		isLoadingNodesOfInterest = true;
-		
-		// Store the original nodes before fetch attempt
-		const originalStartNodes = [...startNodes];
-		const originalEndNodes = [...endNodes];
-		
-		try {
-			console.log(`Fetching nodes of interest for ${appName}/${graphType}/${graphId}`);
-			const url = `/API/nodesOfInterest/${appName}/${graphType}/${graphId}`;
-			
-			// Make the request
-			const response = await fetch(url);
-			if (!response.ok) {
-				throw new Error(`Error fetching nodes of interest: ${response.statusText}`);
-			}
-			
-			const data = await response.json();
-			
-			// Only update if we got valid data
-			if (data.startNodes && data.startNodes.length > 0) {
-				startNodes = data.startNodes;
-			}
-			
-			if (data.endNodes && data.endNodes.length > 0) {
-				endNodes = data.endNodes;
-			}
-			
-			console.log('Fetched start nodes:', startNodes);
-			console.log('Fetched end nodes:', endNodes);
-			
-			nodesOfInterestLoaded = true;
-			
-		} catch (error) {
-			console.error('Failed to fetch nodes of interest:', error);
-			// Important: Restore the original nodes
-			startNodes = originalStartNodes;
-			endNodes = originalEndNodes;
-		} finally {
-			isLoadingNodesOfInterest = false;
-			nodesOfInterestLoaded = true;
-		}
-	}
 
 	// Log loading transaction details for debugging
 	console.log(`Loading transaction: ${appName} ${graphId} ${graphType}`);
@@ -316,33 +224,6 @@
 		console.log('Graph:', graph)
 		console.log('Initial Start Nodes:', startNodes)
 		console.log('Initial End Nodes:', endNodes)
-		
-		// DEBUG: Examine the data structure more closely for community data
-		if (graph && graph.nodes) {
-			// Sample nodes to look at their properties
-			const sampleNodes = graph.nodes.slice(0, 5);
-			console.log("Sample nodes for data inspection:", sampleNodes);
-			
-			// Look specifically for Community data in sample nodes
-			const communityNodes = graph.nodes.filter(node => 
-				node.data && node.data.properties && node.data.properties.Community);
-			
-			console.log(`Found ${communityNodes.length} nodes with Community property`);
-			if (communityNodes.length > 0) {
-				console.log('Sample Community data:', communityNodes[0].data.properties.Community);
-				
-				// Check if any node has SLPA format
-				const slpaFormatNodes = communityNodes.filter(node => {
-					const communities = node.data.properties.Community;
-					return Array.isArray(communities) && communities.some(c => isSLPAFormat(c));
-				});
-				
-				console.log(`Found ${slpaFormatNodes.length} nodes with SLPA format in Community property`);
-				if (slpaFormatNodes.length > 0) {
-					console.log('Sample SLPA data:', slpaFormatNodes[0].data.properties.Community);
-				}
-			}
-		}
 
 		// Add debug listener for layout operations
 		ogma.layouts.onLayoutStart = (layoutName) => {
@@ -376,11 +257,11 @@
 				const nodeId = String(node.getId()) // Get the node's ID
 
 				// Check if the node is a start node
-				if (startNodes && startNodes.includes(nodeId)) {
+				if (startNodes.includes(nodeId)) {
 					return 'green' // Set color to green for start nodes
 				}
 				// Check if the node is an end node
-				else if (endNodes && endNodes.includes(nodeId)) {
+				else if (endNodes.includes(nodeId)) {
 					return 'red' // Set color to red for end nodes
 				}
 				// Default color for other nodes
@@ -514,10 +395,8 @@
 			})
 			.then(() => {
 				logger.info(`Initial layout completed`);
-				// Fetch nodes of interest from the server - but not for Model pages
-				if (!isModelPage) {
-					fetchNodesOfInterest();
-				}
+				// Fetch nodes of interest from the server
+				fetchNodesOfInterest();
 			});
 
 		return {
@@ -538,7 +417,7 @@
 		console.log("Applying Sami layout with:", { startNodes, endNodes });
 		if (ogma) {
 			// If we don't have start/end nodes yet, try to fetch them first
-			if ((startNodes.length === 0 || endNodes.length === 0) && !isLoadingNodesOfInterest && !isModelPage) {
+			if ((startNodes.length === 0 || endNodes.length === 0) && !isLoadingNodesOfInterest) {
 				fetchNodesOfInterest().then(() => {
 					applyLayout(ogma, LayoutType.Sami, { entryNodes: startNodes, exitNodes: endNodes });
 				});
@@ -559,7 +438,7 @@
 		console.log("Applying SamiNoR layout with:", { startNodes, endNodes });
 		if (ogma) {
 			// If we don't have start/end nodes yet, try to fetch them first
-			if ((startNodes.length === 0 || endNodes.length === 0) && !isLoadingNodesOfInterest && !isModelPage) {
+			if ((startNodes.length === 0 || endNodes.length === 0) && !isLoadingNodesOfInterest) {
 				fetchNodesOfInterest().then(() => {
 					applyLayout(ogma, LayoutType.SamiNoR, { entryNodes: startNodes, exitNodes: endNodes });
 				});
@@ -619,74 +498,53 @@
 				}
 				
 				strokeColor = layerColors[layer] || layerColors['Unknown'];
-			} else if (algo === 'SLPA') {
-				// For SLPA, use special color handling for overlaps
-				strokeColor = getSLPAColor(groupId);
 			} else {
 				const levelColorIndex = Math.min(level - 1, groupingLevelColors.length - 1);
 				strokeColor = groupingLevelColors[levelColorIndex];
 			}
 			
-			// Format display name (especially for SLPA overlaps)
-			const displayName = algo === 'SLPA' ? 
-				getDisplayNameForCommunity(groupId) : 
-				groupId;
-			
-			// Determine if this is an overlapping community
-			const isOverlap = algo === 'SLPA' && isOverlappingCommunity(groupId);
-			const strokeWidth = isOverlap ? 3 : 2; // Wider stroke for overlaps
-			
 			return {
 				id: 'special group ' + groupId,
 				data: {
-					groupId: groupId,
-					subNodes: nodes,
-					level: level,
-					isOverlapping: isOverlap
+				groupId: groupId,
+				subNodes: nodes,
+				level: level
 				},
 				attributes: {
-					color: 'white',
-					radius: isContentVisible
-						? undefined
-						: Math.min(
-							Math.max(
-							nodes.reduce((acc, node) => {
-								return acc + 1
-							}, 0),
-							15
-							),
-							50
+				color: 'white',
+				radius: isContentVisible
+					? undefined
+					: Math.min(
+						Math.max(
+						nodes.reduce((acc, node) => {
+							return acc + 1
+						}, 0),
+						15
 						),
-					outerStroke: { 
-						color: strokeColor, 
-						width: strokeWidth,
-						minVisibleSize: 3 
-					},
+						50
+					),
+				outerStroke: { 
+					color: strokeColor, 
+					width: 2, 
+					minVisibleSize: 3 
+				},
+				text: {
+					content: groupId,
+					position: 'center',
+					color: 'black',
+					maxLineLength: 140,
+					size: 12,
+					minVisibleSize: 5
+				},
+				badges: {
+					bottomRight: {
+					color: 'white',
 					text: {
-						content: displayName,
-						position: 'center',
-						color: 'black',
-						maxLineLength: 140,
-						size: 12,
-						minVisibleSize: 5
-					},
-					badges: {
-						bottomRight: {
-							color: 'white',
-							text: {
-								color: 'gray',
-								content: nodes.size
-							}
-						},
-						// Add badge for overlapping communities showing overlap count
-						topRight: isOverlap ? {
-							color: strokeColor,
-							text: {
-								color: 'white',
-								content: countOverlappingCommunities(groupId)
-							}
-						} : null
+						color: 'gray',
+						content: nodes.size
 					}
+					}
+				}
 				}
 			}
 			},
@@ -885,49 +743,24 @@
 		nodes.setData('groupId', (node) => computeCommunityLevel(node, forLevel))
 		nodes.setData('level', () => forLevel)
 	}
-	
-	// FIXED: Now correctly handles SLPA data from the Community property
 	const computeCommunityLevel = (node: Node, forLevel: number = level) => {
-		try {
-			// Handle special grouping algorithms
-			if (algo === 'ArchitecturalRole') {
-				const roleValue = node.getData('properties.roleArchitectural');
-				return roleValue || 'Unknown';
-			}
-			
-			if (algo === 'ArchitecturalLayer') {
-				const layerValue = node.getData('properties.coucheArchitecturale');
-				return layerValue || 'Unknown';
-			}
-			
-			// Get community data from the standard Community property - same for all algorithms
-			// For SLPA, we'll handle the special format with $*$ delimiters
-			const communities = node.getData('properties.Community');
-			
-			if (!communities || !communities[forLevel - 1]) {
-				return undefined;
-			}
-			
-			// Get the community data for this level
-			const communityData = communities[forLevel - 1];
-			
-			// For SLPA algorithm, check if the community data has $*$ delimiters
-			if (algo === 'SLPA' && isSLPAFormat(communityData)) {
-				// This is SLPA data with overlapping communities
-				const parts = parseSLPACommunities(communityData);
-				if (parts.length === 0) return undefined;
-				
-				// Sort parts for consistent group naming
-				return [...parts].sort().join('&');
-			}
-			
-			// For non-SLPA or SLPA data without $*$ delimiters, return as is
-			return communityData;
-			
-		} catch (error) {
-			console.error(`Error computing community level for node ${node.getId()}:`, error);
-			return undefined;
+		// Handle special grouping algorithms
+		if (algo === 'ArchitecturalRole') {
+			const roleValue = node.getData('properties.roleArchitectural');
+			logger.debug(`Node ${node.getId()} has roleArchitectural=${roleValue}`);
+			return roleValue || 'Unknown';
 		}
+		
+		if (algo === 'ArchitecturalLayer') {
+			const layerValue = node.getData('properties.coucheArchitecturale');
+			logger.debug(`Node ${node.getId()} has coucheArchitecturale=${layerValue}`);
+			return layerValue || 'Unknown';
+		}
+		
+		// Original code for community-based algorithms
+		const communities: number[] = graphType == 'Model' ? node.getData('properties.Community') : node.getData('properties.' + algo)
+		if (communities) return communities[forLevel - 1]
+		return undefined
 	}
 
 	const changeLevelForAll = () => {
@@ -1028,11 +861,6 @@
 			}
 		}
 	}
-	
-	// Log component information at mount time
-	onMount(() => {
-		console.log("The component has mounted. params:", $page.params, ', slug:', appName);
-	});
 </script>
 
 
@@ -1073,29 +901,6 @@
 				/>
 				<button on:click={() => openAlgoLaunchPad()}>Algo LaunchPad</button>
 			</div>
-			
-			{#if algo === 'SLPA'}
-			<div class="slpa-legend">
-				<h4>SLPA Community Legend</h4>
-				<div class="legend-item">
-					<div class="color-box" style="background-color: {overlapColors.single}"></div>
-					<span>Single community</span>
-				</div>
-				<div class="legend-item">
-					<div class="color-box" style="background-color: {overlapColors.overlap2}"></div>
-					<span>2 communities overlap</span>
-				</div>
-				<div class="legend-item">
-					<div class="color-box" style="background-color: {overlapColors.overlap3}"></div>
-					<span>3 communities overlap</span>
-				</div>
-				<div class="legend-item">
-					<div class="color-box" style="background-color: {overlapColors.overlap4plus}"></div>
-					<span>4+ communities overlap</span>
-				</div>
-				<p class="slpa-info">Badges show number of overlapping communities</p>
-			</div>
-			{/if}
 		</div>
 		<div id="zoombar" class="zoombar">
 			<button on:click={() => ogma.view.zoomOut({ duration: 200 })}><i class="fa-solid fa-minus"></i></button>
@@ -1191,43 +996,5 @@
 		height: var(--viewer-height);
 		margin: 0;
 		padding: 0;
-	}
-	
-	/* SLPA specific styles */
-	.slpa-legend {
-		margin-top: 1rem;
-		padding: 0.5rem;
-		background-color: rgba(255, 255, 255, 0.9);
-		border-radius: 4px;
-		border: 1px solid #ddd;
-	}
-	
-	.slpa-legend h4 {
-		margin: 0 0 0.5rem 0;
-		font-size: 0.9rem;
-	}
-	
-	.legend-item {
-		display: flex;
-		align-items: center;
-		margin-bottom: 0.3rem;
-	}
-	
-	.color-box {
-		width: 16px;
-		height: 16px;
-		border-radius: 3px;
-		margin-right: 8px;
-		border: 1px solid #333;
-	}
-	
-	.slpa-legend span {
-		font-size: 0.8rem;
-	}
-	
-	.slpa-info {
-		margin-top: 0.5rem;
-		font-size: 0.8rem;
-		font-style: italic;
 	}
 </style>

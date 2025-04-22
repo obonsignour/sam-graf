@@ -3,6 +3,53 @@ import type { ForceLayoutOptions, ForceLinkOptions, HierarchicalLayoutOptions, L
 //import { startNodesStore, endNodesStore } from '$lib/generalStore'
 import { logger } from '$lib/logger' // Import the logger
 
+// Architecture layer and role definitions
+export const architecturalLayers = ['INTERFACE', 'BUSINESS', 'DATA', 'UTILITY', 'INFRASTRUCTURE']
+export const architecturalLayerOrder = {
+  'INTERFACE': 0,     // Top
+  'BUSINESS': 1,      // Middle
+  'DATA': 2,          // Bottom
+  'UTILITY': 3,       // Right side
+  'INFRASTRUCTURE': 4 // Bottom right
+}
+
+// Role categories mapping
+export const roleCategoriesMap = {
+  'DATA': ['Entity', 'Repository', 'ValueObject', 'Enum'],
+  'BUSINESS': ['Service', 'DomainService', 'Calculator', 'Validator', 'Factory'],
+  'INTERFACE': ['Controller', 'View', 'Formatter', 'InputValidator'],
+  'INFRASTRUCTURE': ['Configuration', 'Security', 'Logger', 'Integration'],
+  'UTILITY': ['Helper/Util', 'Mapper', 'Builder']
+}
+
+// Function to get the layer for a role
+export const getLayerForRole = (role: string): string => {
+  // Check if role is null or undefined
+  if (!role) return 'Unknown'
+  
+  // Handle partial matches for roles (in case of formatting differences)
+  for (const [layer, roles] of Object.entries(roleCategoriesMap)) {
+    // Exact match
+    if (roles.includes(role)) {
+      return layer
+    }
+    
+    // Partial match
+    for (const layerRole of roles) {
+      if (role.includes(layerRole) || layerRole.includes(role)) {
+        return layer
+      }
+    }
+  }
+  
+  // Check if the role matches a layer name
+  if (architecturalLayers.includes(role)) {
+    return role
+  }
+  
+  return 'Unknown'
+}
+
 /*let currentStartNodes = [];
 let currentEndNodes = [];
 
@@ -38,21 +85,212 @@ export const defaultHierarchicalOptions: HierarchicalLayoutOptions = {
   locate: true
 }
 
-
+// New layout types for architectural layouts
 export const LayoutType = {
   Force: 'force',
   ForceLink: 'forceLink',
   Hierarchical: 'hierarchical',
   Sami: 'sami',
-  SamiNoR: 'samiNoR'
+  SamiNoR: 'samiNoR',
+  ArchitecturalLayer: 'architecturalLayer',
+  ArchitecturalRole: 'architecturalRole'
 } as const
 type ValLayoutType = (typeof LayoutType)[keyof typeof LayoutType]
 
+// Options for architectural layouts
+export interface ArchitecturalLayoutOptions {
+  duration?: number;
+  locate?: boolean;
+}
 
+export const defaultArchitecturalOptions: ArchitecturalLayoutOptions = {
+  duration: 800,
+  locate: true
+}
+
+// Layout function for architectural layers - COMPLETELY REWRITTEN
+const applyArchitecturalLayerLayout = (ogma: Ogma, options: ArchitecturalLayoutOptions = {}): Promise<unknown> => {
+  logger.info("Applying architectural layer layout");
+  
+  return new Promise((resolve, reject) => {
+    try {
+      // Get all virtual nodes (groups)
+      const groupNodes = ogma.getNodes().filter(node => node.isVirtual());
+      
+      logger.info(`Found ${groupNodes.size} group nodes for layer layout`);
+      
+      // Custom positioning for each layer
+      const positions: {[key: string]: {x: number, y: number}} = {};
+      const centerX = 0;
+      let yOffset = -500;  // Start from top
+      const ySpacing = 300;  // Vertical space between layers
+      const xOffset = 600;   // For UTILITY and INFRASTRUCTURE
+      
+      // Position main vertical flow: INTERFACE -> BUSINESS -> DATA
+      architecturalLayers.slice(0, 3).forEach((layer, index) => {
+        positions[layer] = {
+          x: centerX,
+          y: yOffset + (index * ySpacing)
+        };
+      });
+      
+      // Position UTILITY and INFRASTRUCTURE to the right side
+      positions['UTILITY'] = {
+        x: xOffset,
+        y: yOffset + ySpacing // At the same level as BUSINESS
+      };
+      
+      positions['INFRASTRUCTURE'] = {
+        x: xOffset,
+        y: yOffset + (2 * ySpacing) // At the same level as DATA
+      };
+      
+      // Set positions for each group
+      let nodesPositioned = 0;
+      groupNodes.forEach(node => {
+        const groupId = node.getData('groupId');
+        logger.info(`Node ${node.getId()} has groupId ${groupId}`);
+        
+        // If the group ID matches a layer name
+        if (positions[groupId]) {
+          const pos = positions[groupId];
+          node.setAttributes({ x: pos.x, y: pos.y });
+          nodesPositioned++;
+        }
+      });
+      
+      logger.info(`Positioned ${nodesPositioned} nodes`);
+      
+      // Simply locate the graph to show all nodes
+      if (options.locate !== false) {
+        ogma.view.locateGraph(defaultLocateOptions).then(() => {
+          resolve({ type: 'layout', name: 'architecturalLayer' });
+        });
+      } else {
+        resolve({ type: 'layout', name: 'architecturalLayer' });
+      }
+    } catch (error) {
+      logger.error('Error applying architectural layer layout:', error);
+      reject(error);
+    }
+  });
+};
+
+// Layout function for architectural roles - COMPLETELY REWRITTEN
+const applyArchitecturalRoleLayout = (ogma: Ogma, options: ArchitecturalLayoutOptions = {}): Promise<unknown> => {
+  logger.info("Applying architectural role layout");
+  
+  return new Promise((resolve, reject) => {
+    try {
+      // Get all virtual nodes (groups)
+      const groupNodes = ogma.getNodes().filter(node => node.isVirtual());
+      
+      logger.info(`Found ${groupNodes.size} group nodes for role layout`);
+      
+      // Create a map of positions for each role based on its layer
+      const positions: {[key: string]: {x: number, y: number}} = {};
+      const layerY: {[key: string]: number} = {};
+      
+      // Calculate Y position for each layer
+      let yOffset = -500;  // Start from top
+      const ySpacing = 300;
+      
+      // Set y positions for main vertical flow layers
+      architecturalLayers.slice(0, 3).forEach((layer, index) => {
+        layerY[layer] = yOffset + (index * ySpacing);
+      });
+      
+      // Set y positions for side layers
+      layerY['UTILITY'] = yOffset + ySpacing;  // Same level as BUSINESS
+      layerY['INFRASTRUCTURE'] = yOffset + (2 * ySpacing);  // Same level as DATA
+      layerY['Unknown'] = yOffset + (3 * ySpacing);  // Below everything else
+      
+      // Group roles by layer for proper distribution
+      const rolesByLayer: {[key: string]: string[]} = {};
+      
+      groupNodes.forEach(node => {
+        const role = node.getData('groupId');
+        if (!role) return;
+        
+        const layer = getLayerForRole(role);
+        if (!rolesByLayer[layer]) {
+          rolesByLayer[layer] = [];
+        }
+        if (!rolesByLayer[layer].includes(role)) {
+          rolesByLayer[layer].push(role);
+        }
+      });
+      
+      // Calculate positions for each role within its layer
+      Object.entries(rolesByLayer).forEach(([layer, roles]) => {
+        const y = layerY[layer] || layerY['Unknown'];
+        const count = roles.length;
+        
+        // Base position and spacing
+        let xBase = 0;
+        let xSpacing = 300;
+        
+        // Adjust position for side layers
+        if (layer === 'UTILITY' || layer === 'INFRASTRUCTURE' || layer === 'Unknown') {
+          xBase = 600;  // Side position
+        }
+        
+        // Distribute roles horizontally
+        if (count > 1) {
+          const layerWidth = (count - 1) * xSpacing;
+          const startX = xBase - (layerWidth / 2);
+          
+          roles.forEach((role, index) => {
+            positions[role] = {
+              x: startX + (index * xSpacing),
+              y: y
+            };
+          });
+        } else if (count === 1) {
+          positions[roles[0]] = {
+            x: xBase,
+            y: y
+          };
+        }
+      });
+      
+      // Set positions for each group
+      let nodesPositioned = 0;
+      groupNodes.forEach(node => {
+        const role = node.getData('groupId');
+        
+        if (positions[role]) {
+          const pos = positions[role];
+          node.setAttributes({ x: pos.x, y: pos.y });
+          nodesPositioned++;
+          logger.info(`Positioned node ${node.getId()} with role ${role} at [${pos.x}, ${pos.y}]`);
+        } else {
+          logger.warn(`No position found for role: ${role}`);
+        }
+      });
+      
+      logger.info(`Positioned ${nodesPositioned} nodes`);
+      
+      // Simply locate the graph to show all nodes
+      if (options.locate !== false) {
+        ogma.view.locateGraph(defaultLocateOptions).then(() => {
+          resolve({ type: 'layout', name: 'architecturalRole' });
+        });
+      } else {
+        resolve({ type: 'layout', name: 'architecturalRole' });
+      }
+    } catch (error) {
+      logger.error('Error applying architectural role layout:', error);
+      reject(error);
+    }
+  });
+};
+
+// Modified applyLayout function to better handle architectural layouts
 export const applyLayout = (
   ogma: Ogma,
   layout: ValLayoutType,
-  options: (ForceLayoutOptions | ForceLinkOptions | HierarchicalLayoutOptions | { entryNodes: [], exitNodes: [] }) = {}
+  options: (ForceLayoutOptions | ForceLinkOptions | HierarchicalLayoutOptions | { entryNodes: [], exitNodes: [] } | ArchitecturalLayoutOptions) = {}
 ) => {
   const layouts = [
     {
@@ -74,9 +312,16 @@ export const applyLayout = (
     {
       type: LayoutType.SamiNoR,
       layoutFunction: (options: { entryNodes: [], exitNodes: [] }): Promise<unknown> => samiLayoutNoR(options.entryNodes, options.exitNodes, ogma)
+    },
+    {
+      type: LayoutType.ArchitecturalLayer,
+      layoutFunction: (options: ArchitecturalLayoutOptions): Promise<unknown> => applyArchitecturalLayerLayout(ogma, options)
+    },
+    {
+      type: LayoutType.ArchitecturalRole,
+      layoutFunction: (options: ArchitecturalLayoutOptions): Promise<unknown> => applyArchitecturalRoleLayout(ogma, options)
     }
   ]
-
 
   const layoutObj = layouts.find((l) => l.type === layout)
 
@@ -90,11 +335,16 @@ export const applyLayout = (
 
   return layoutObj.layoutFunction(options as any) // Type-casting options properly
     .then(() => {
-      ogma.view.locateGraph(defaultLocateOptions)
+      // For architectural layouts, we skip the additional locateGraph to prevent
+      // any interference with the layout that was just applied
+      if (layout !== LayoutType.ArchitecturalLayer && layout !== LayoutType.ArchitecturalRole) {
+        return ogma.view.locateGraph(defaultLocateOptions);
+      }
     })
     .catch(err => {
-      console.error(`Error applying layout: ${err}`)
-    })
+      console.error(`Error applying layout: ${err}`);
+      return Promise.reject(err);
+    });
 }
 
 

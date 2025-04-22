@@ -1,0 +1,63 @@
+// src/routes/api/nodesOfInterest/[appName]/[graphType]/[graphId]/+server.ts
+import { error, json } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
+
+export async function GET({ params, url }) {
+  const { appName, graphType, graphId } = params;
+  
+  try {
+    let apiUrl;
+    
+    // Special handling for Models which have a different URL structure
+    if (graphType === 'Models' || graphType === 'Model') {
+      // For Models, we need to check if the graphId is actually a modelName
+      // This handles cases where the URL might be structured as:
+      // /Applications/ecommerce115/Models/SLPAall/NodesOfInterest
+      
+      // Check if we're dealing with a numeric graphId or a modelName
+      const isNumericGraphId = !isNaN(Number(graphId));
+      
+      if (isNumericGraphId) {
+        // If it's a numeric ID, we need the modelName which should be in the URL
+        // Extract it from the path or query parameter
+        const modelName = url.searchParams.get('modelName');
+        
+        if (!modelName) {
+          throw error(400, 'modelName parameter is required for Models with numeric graphId');
+        }
+        
+        apiUrl = `http://${env.SAM_GRAF_SERVER}/Applications/${appName}/Models/${graphId}/${modelName}/NodesOfInterest`;
+      } else {
+        // If graphId is not numeric, it's likely a modelName directly
+        // The actual graphId might be in the query string
+        const actualGraphId = url.searchParams.get('graphId');
+        
+        if (!actualGraphId) {
+          throw error(400, 'graphId parameter is required when modelName is used in path');
+        }
+        
+        apiUrl = `http://${env.SAM_GRAF_SERVER}/Applications/${appName}/Models/${actualGraphId}/${graphId}/NodesOfInterest`;
+      }
+    } else {
+      // For other graph types (Transaction, DataGraph), use the original pattern
+      // Add 's' to graphType if not already present
+      const graphTypeEndpoint = graphType.endsWith('s') ? graphType : graphType + 's';
+      
+      apiUrl = `http://${env.SAM_GRAF_SERVER}/Applications/${appName}/${graphTypeEndpoint}/${graphId}/NodesOfInterest`;
+    }
+    
+    console.log('Server fetching from:', apiUrl);
+    
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      throw error(response.status, `API returned ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return json(data);
+  } catch (e) {
+    console.error('Error fetching nodes of interest:', e);
+    throw error(500, 'Failed to fetch nodes of interest: ' + e.message);
+  }
+}
